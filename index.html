@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<head>
+	<title>Disperse</title>
+	<meta charset="utf-8" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1" />
+	<script>
+		!function() {
+		"use strict";
+
+		var scripts = {}
+		var styles  = {}
+
+		var html5_scripts = [
+			'scripts/lib/f.js',
+			'scripts/lib/pf.js',
+			'scripts/lib/dom.js',
+			'scripts/lib/kbd.js',
+			'scripts/lib/perf.js',
+			'scripts/lib/tween.js',
+
+			'scripts/main.js'
+		]
+		var html5_styles = [
+			'styles/global.css',
+			'styles/ui.css',
+		]
+
+		var first = document.getElementsByTagName('script')[0]
+		function add_script(src, callback) {
+			var elem    = document.createElement('script')
+			elem.type   = 'text/javascript'
+			elem.src    = window.scriptname = src // +'?'+ Math.random()
+			elem.onload = callback
+			setTimeout(function() {
+				first.parentNode.insertBefore(elem, first)
+			}, 20)
+		}
+		function add_style(href) {
+			var elem  = document.createElement('link')
+			elem.rel  = 'stylesheet'
+			elem.href = href
+			elem.type = 'text/css'
+			first.parentNode.insertBefore(elem, first)
+		}
+
+		function loadScripts(scripts, callback) {
+			var scripts_progress = 0.8
+			,   scripts_total = scripts.length
+			!function run_scripts() {
+				if(typeof bootProgress === 'function') {
+					bootProgress(scripts_progress * (1 - scripts.length / scripts_total))
+				}
+				if(scripts.length) add_script(scripts.shift(), run_scripts)
+				else if(typeof callback === 'function') callback()
+			}()
+		}
+		function loadStyles(styles) {
+			while(styles.length) add_style(styles.shift())
+		}
+
+
+		loadStyles(html5_styles.slice())
+		loadScripts(html5_scripts.slice())
+
+		}()
+	</script>
+</head>
+
+<body>
+</body>

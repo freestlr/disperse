@@ -2,19 +2,14 @@ var seed = 543334
 
 
 
-var w1 = 8
-var h1 = 8
 
-var sw2 = 16
-var sh2 = 1
-var w2 = w1 * sw2
-var h2 = h1 * sh2
+var s = 8
+var i = 16
 
-var sw3 = 1
-var sh3 = 16
-var w3 = w2 * sw3
-var h3 = h2 * sh3
+var bg = null
+var bgSize = 256
 
+var filter = cubic
 
 var g = {}
 
@@ -24,11 +19,34 @@ var mt = new MersenneTwister
 
 
 
-var g0 = makeCanvasSet(w1, h1, { imageRendering: 'auto' })
-var g1 = makeCanvasSet(w1, h1)
-var g2 = makeCanvasSet(w2, h2)
-var g3 = makeCanvasSet(w3, h3)
+// var g0 = makeCanvasSet(s, s, { imageRendering: 'auto' })
+var g1 = makeCanvasSet(s, s)
+var g2 = makeCanvasSet(s * i, s)
+var g4 = makeCanvasSet(s, s * i)
+var g3 = makeCanvasSet(s * i, s * i)
 
+
+function run() {
+	mt.init(seed)
+
+	generate(g1)
+	interh(g2, g1, filter)
+	interv(g4, g1, filter)
+	interv(g3, g2, filter)
+
+	// draw(g0, g1.dat)
+	draw(g1, g1.dat)
+	draw(g2, g2.dat)
+	draw(g3, g3.dat)
+	draw(g4, g4.dat)
+
+	backgroundCapture()
+}
+
+function rerun(set) {
+	seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
+	run()
+}
 
 
 
@@ -36,11 +54,14 @@ var g3 = makeCanvasSet(w3, h3)
 
 
 new EventHandler(onResize).listen('resize', window)
+new EventHandler(onKey).listen('keydown', window)
 
 
 
 onResize()
-run(seed)
+backgroundCapture(null)
+backgroundResize(1)
+run()
 
 
 
@@ -79,40 +100,34 @@ function makeCanvasSet(w, h, options) {
 }
 
 function onCanvasEnter(set) {
-	capture(set.cvs.toDataURL())
+	bg = set
+	backgroundCapture()
 }
 
 function onCanvasLeave(set) {
-	capture(null)
+	bg = null
+	backgroundCapture()
 }
 
 function onCanvasClick(set) {
-	run(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
-	onCanvasLeave(set)
-	onCanvasEnter(set)
+	rerun()
 }
 
-function capture(url) {
+function backgroundCapture(set) {
 	f.copy(document.body.style, {
-		'background-image': url ? 'url('+ url +')' : '',
-		'background-size': '256px 256px',
+		'background-image': bg ? 'url('+ bg.cvs.toDataURL() +')' : '',
 		'background-position': '0 0',
 	})
 }
 
+function backgroundResize(scale) {
+	bgSize *= scale
 
-function run(seed) {
-	mt.init(seed)
-
-	generate(g1)
-	generate2(g2, g1)
-	generate3(g3, g2)
-
-	draw(g0, g1.dat)
-	draw(g1, g1.dat)
-	draw(g2, g2.dat)
-	draw(g3, g3.dat)
+	f.copy(document.body.style, {
+		'background-size': bgSize +'px '+ bgSize +'px',
+	})
 }
+
 
 function draw(g, dat) {
 	var d = g.pix.data
@@ -136,85 +151,122 @@ function generate(g) {
 	for(var x = 0; x < g.w; x++) {
 		var i = y * g.w + x
 
-		var v = mt.random()
-
-		g.dat[i] = v
+		g.dat[i] = mt.random()
 	}
 }
 
-function generate2(g, gu) {
-	var sw = g.w / gu.w
-	var sh = g.h / gu.h
+function interh(dst, src, func) {
+	var sw = dst.w / src.w
+	var sh = dst.h / src.h
 
-	for(var y = 0; y < g.h; y++)
-	for(var x = 0; x < g.w; x++) {
-		var i = y * g.w + x
+	for(var y = 0; y < dst.h; y++)
+	for(var x = 0; x < dst.w; x++) {
+		var i = y * dst.w + x
 
 		var x1 = x / sw |0
 		var y1 = y / sh |0
 
-		var xp = (x - x1 * sw) / sw
-		var yp = (y - y1 * sh) / sh
+		var p = (x - x1 * sw) / sw
 
-		var xa = (x1 || gu.w) - 1
+		var xa = (x1 || src.w) - 1
 		var xb = x1
-		var xc = (x1 + 1) % gu.w
-		var xd = (x1 + 2) % gu.w
+		var xc = (x1 + 1) % src.w
+		var xd = (x1 + 2) % src.w
 
-		var ya = y1
+		var a = src.dat[y1 * src.w + xa]
+		var b = src.dat[y1 * src.w + xb]
+		var c = src.dat[y1 * src.w + xc]
+		var d = src.dat[y1 * src.w + xd]
+
+		dst.dat[i] = func(p, a, b, c, d)
+	}
+}
+
+function interv(dst, src, func) {
+	var sw = dst.w / src.w
+	var sh = dst.h / src.h
+
+	for(var y = 0; y < dst.h; y++)
+	for(var x = 0; x < dst.w; x++) {
+		var i = y * dst.w + x
+
+		var x1 = x / sw |0
+		var y1 = y / sh |0
+
+		var p = y / sh - y1
+
+		var ya = (y1 || src.h) - 1
 		var yb = y1
-		var yc = y1
-		var yd = y1
+		var yc = (y1 + 1) % src.h
+		var yd = (y1 + 2) % src.h
 
-		var ia = ya * gu.w + xa
-		var ib = yb * gu.w + xb
-		var ic = yc * gu.w + xc
-		var id = yd * gu.w + xd
+		var a = src.dat[ya * src.w + x1]
+		var b = src.dat[yb * src.w + x1]
+		var c = src.dat[yc * src.w + x1]
+		var d = src.dat[yd * src.w + x1]
 
-		var v = f.cubin(xp, gu.dat[ia], gu.dat[ib], gu.dat[ic], gu.dat[id])
-
-		g.dat[i] = v
+		dst.dat[i] = func(p, a, b, c, d)
 	}
 }
 
-
-function generate3(g, gu) {
-	var sw = g.w / gu.w
-	var sh = g.h / gu.h
-
-	for(var y = 0; y < g.h; y++)
-	for(var x = 0; x < g.w; x++) {
-		var i = y * g.w + x
-
-		var xu = x / sw |0
-		var yu = y / sh |0
-
-		var xp = x / sw - xu
-		var yp = y / sh - yu
-
-		var xa = xu
-		var xb = xu
-		var xc = xu
-		var xd = xu
-
-		var ya = (yu || gu.h) - 1
-		var yb = yu
-		var yc = (yu + 1) % gu.h
-		var yd = (yu + 2) % gu.h
-
-		var ia = ya * gu.w + xa
-		var ib = yb * gu.w + xb
-		var ic = yc * gu.w + xc
-		var id = yd * gu.w + xd
-
-		var v = f.cubin(yp, gu.dat[ia], gu.dat[ib], gu.dat[ic], gu.dat[id])
-
-		g.dat[i] = v
-	}
+function nearest(x, a, b, c, d) {
+	return x < 0.5 ? b : c
 }
 
+function linear(x, a, b, c, d) {
+	return (c - b) * x + b
+}
 
+function cubic(x, a, b, c, d) {
+	return b + 0.5 * x*(c - a + x*(2*a - 5*b + 4*c - d + x*(3*(b - c) + d - a)))
+}
 
+function tangent(x, a, b, c, d) {
+	var kb = b *2 -1
+	var kc = c *2 -1
+	return linear(x, 0, x * kb, (x - 1) * kc, 0) +.5
+	// return (x * kb * (1 - x) + (x - 1) * kc * x) *.5 +.5
+}
+
+function onKey(e) {
+	var key = String.fromCharCode(e.keyCode).toLowerCase()
+	switch(e.keyCode) {
+		case 189: // -
+			backgroundResize(1/2)
+		break
+
+		case 187: // =
+			backgroundResize(2)
+		break
+
+		case 49: // 1
+			filter = nearest
+			run()
+		break
+
+		case 50: // 2
+			filter = linear
+			run()
+		break
+
+		case 51: // 3
+			filter = cubic
+			run()
+		break
+
+		case 52: // 4
+			filter = tangent
+			run()
+		break
+
+		case 32: // space
+			rerun()
+		break
+
+		default:
+			console.log('key', e.keyCode, key)
+	}
+}
 
 function onResize() {
 	var w = window.innerWidth

@@ -16,79 +16,21 @@ var w3 = w2 * sw3
 var h3 = h2 * sh3
 
 
+var g = {}
 
 
 
-var mt = new MersenneTwister(seed)
+var mt = new MersenneTwister
 
 
 
-
-
-var cvs = dom.elem('canvas', null, document.body)
-var ctx = cvs.getContext('2d')
-var dat = new Float32Array(w1 * h1)
-var pix = ctx.createImageData(w1, h1)
-
-cvs.width = w1
-cvs.height = h1
-
-
-f.copy(cvs.style, {
-	width:  /* w1 * 32 + */'256px',
-	height: /* h1 * 32 + */'256px',
-	imageRendering: 'pixelated',
-})
+var g0 = makeCanvasSet(w1, h1, { imageRendering: 'auto' })
+var g1 = makeCanvasSet(w1, h1)
+var g2 = makeCanvasSet(w2, h2)
+var g3 = makeCanvasSet(w3, h3)
 
 
 
-
-
-
-var cvs2 = dom.elem('canvas', null, document.body)
-var ctx2 = cvs2.getContext('2d')
-var dat2 = new Float32Array(w2 * h2)
-var pix2 = ctx2.createImageData(w2, h2)
-
-cvs2.width = w2
-cvs2.height = h2
-
-
-f.copy(cvs2.style, {
-	width:  '256px',
-	height: '256px',
-	imageRendering: 'pixelated',
-})
-
-
-
-var cvs3 = dom.elem('canvas', null, document.body)
-var ctx3 = cvs3.getContext('2d')
-var dat3 = new Float32Array(w3 * h3)
-var pix3 = ctx3.createImageData(w3, h3)
-
-cvs3.width = w3
-cvs3.height = h3
-
-
-f.copy(cvs3.style, {
-	width:  '256px',
-	height: '256px',
-	imageRendering: 'pixelated',
-})
-
-
-
-var cvs0 = dom.elem('canvas', null, document.body)
-var ctx0 = cvs0.getContext('2d')
-
-cvs0.width = w1
-cvs0.height = h1
-
-f.copy(cvs0.style, {
-	width:  '256px',
-	height: '256px',
-})
 
 
 
@@ -98,121 +40,177 @@ new EventHandler(onResize).listen('resize', window)
 
 
 onResize()
-generate()
+run(seed)
 
 
 
 
+function makeCanvasSet(w, h, options) {
+	var opt = options || {}
+	var cvs = dom.elem('canvas', null, document.body)
+	var ctx = cvs.getContext('2d')
+	var dat = new Float32Array(w * h)
+	var pix = ctx.createImageData(w, h)
+
+	cvs.width = w
+	cvs.height = h
 
 
-function generate() {
-	var d = pix.data
-	for(var y = 0; y < h1; y++)
-	for(var x = 0; x < w1; x++) {
-		var i = y * w1 + x
+	f.copy(cvs.style, {
+		width:  /* w * 32 + */'256px',
+		height: /* h * 32 + */'256px',
+		imageRendering: opt.imageRendering || 'pixelated',
+	})
 
-		var v = mt.random()
+	var set = {
+		w: w,
+		h: h,
+		cvs: cvs,
+		ctx: ctx,
+		dat: dat,
+		pix: pix,
+	}
 
-		dat[i] = v
+	new EventHandler(onCanvasEnter, null, set).listen('mouseenter', cvs)
+	new EventHandler(onCanvasLeave, null, set).listen('mouseleave', cvs)
+	new EventHandler(onCanvasClick, null, set).listen('click', cvs)
 
+	return set
+}
+
+function onCanvasEnter(set) {
+	capture(set.cvs.toDataURL())
+}
+
+function onCanvasLeave(set) {
+	capture(null)
+}
+
+function onCanvasClick(set) {
+	run(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER))
+	onCanvasLeave(set)
+	onCanvasEnter(set)
+}
+
+function capture(url) {
+	f.copy(document.body.style, {
+		'background-image': url ? 'url('+ url +')' : '',
+		'background-size': '256px 256px',
+		'background-position': '0 0',
+	})
+}
+
+
+function run(seed) {
+	mt.init(seed)
+
+	generate(g1)
+	generate2(g2, g1)
+	generate3(g3, g2)
+
+	draw(g0, g1.dat)
+	draw(g1, g1.dat)
+	draw(g2, g2.dat)
+	draw(g3, g3.dat)
+}
+
+function draw(g, dat) {
+	var d = g.pix.data
+	for(var y = 0; y < g.h; y++)
+	for(var x = 0; x < g.w; x++) {
+		var i = y * g.w + x
 		var o = i * 4
+		var v = dat[i]
+
 		d[o +0] = v * 255 |0
 		d[o +1] = v * 255 |0
 		d[o +2] = v * 255 |0
 		d[o +3] = 255
 	}
 
-	ctx.putImageData(pix, 0, 0)
-	ctx0.putImageData(pix, 0, 0)
-
-	generate2()
+	g.ctx.putImageData(g.pix, 0, 0)
 }
 
-function generate2() {
-	var d = pix2.data
+function generate(g) {
+	for(var y = 0; y < g.h; y++)
+	for(var x = 0; x < g.w; x++) {
+		var i = y * g.w + x
 
-	for(var y = 0; y < h2; y++)
-	for(var x = 0; x < w2; x++) {
-		var i = y * w2 + x
+		var v = mt.random()
 
-		var x1 = x / sw2 |0
-		var y1 = y / sh2 |0
+		g.dat[i] = v
+	}
+}
 
-		var xp = (x - x1 * sw2) / sw2
-		var yp = (y - y1 * sh2) / sh2
+function generate2(g, gu) {
+	var sw = g.w / gu.w
+	var sh = g.h / gu.h
 
-		var xa = (x1 || w1) - 1
+	for(var y = 0; y < g.h; y++)
+	for(var x = 0; x < g.w; x++) {
+		var i = y * g.w + x
+
+		var x1 = x / sw |0
+		var y1 = y / sh |0
+
+		var xp = (x - x1 * sw) / sw
+		var yp = (y - y1 * sh) / sh
+
+		var xa = (x1 || gu.w) - 1
 		var xb = x1
-		var xc = (x1 + 1) % w1
-		var xd = (x1 + 2) % w1
+		var xc = (x1 + 1) % gu.w
+		var xd = (x1 + 2) % gu.w
 
 		var ya = y1
 		var yb = y1
 		var yc = y1
 		var yd = y1
 
-		var ia = ya * w1 + xa
-		var ib = yb * w1 + xb
-		var ic = yc * w1 + xc
-		var id = yd * w1 + xd
+		var ia = ya * gu.w + xa
+		var ib = yb * gu.w + xb
+		var ic = yc * gu.w + xc
+		var id = yd * gu.w + xd
 
-		var v = f.cubin(xp, dat[ia], dat[ib], dat[ic], dat[id])
+		var v = f.cubin(xp, gu.dat[ia], gu.dat[ib], gu.dat[ic], gu.dat[id])
 
-		dat2[i] = v
-
-		var o = i * 4
-		d[o +0] = v * 255 |0
-		d[o +1] = v * 255 |0
-		d[o +2] = v * 255 |0
-		d[o +3] = 255
+		g.dat[i] = v
 	}
-
-	ctx2.putImageData(pix2, 0, 0)
-
-	generate3()
 }
 
 
-function generate3() {
-	var d = pix3.data
+function generate3(g, gu) {
+	var sw = g.w / gu.w
+	var sh = g.h / gu.h
 
-	for(var y = 0; y < h3; y++)
-	for(var x = 0; x < w3; x++) {
-		var i = y * w3 + x
+	for(var y = 0; y < g.h; y++)
+	for(var x = 0; x < g.w; x++) {
+		var i = y * g.w + x
 
-		var xu = x / sw3 |0
-		var yu = y / sh3 |0
+		var xu = x / sw |0
+		var yu = y / sh |0
 
-		var xp = x / sw3 - xu
-		var yp = y / sh3 - yu
+		var xp = x / sw - xu
+		var yp = y / sh - yu
 
 		var xa = xu
 		var xb = xu
 		var xc = xu
 		var xd = xu
 
-		var ya = (yu || h2) - 1
+		var ya = (yu || gu.h) - 1
 		var yb = yu
-		var yc = (yu + 1) % h2
-		var yd = (yu + 2) % h2
+		var yc = (yu + 1) % gu.h
+		var yd = (yu + 2) % gu.h
 
-		var ia = ya * w2 + xa
-		var ib = yb * w2 + xb
-		var ic = yc * w2 + xc
-		var id = yd * w2 + xd
+		var ia = ya * gu.w + xa
+		var ib = yb * gu.w + xb
+		var ic = yc * gu.w + xc
+		var id = yd * gu.w + xd
 
-		var v = f.cubin(yp, dat2[ia], dat2[ib], dat2[ic], dat2[id])
+		var v = f.cubin(yp, gu.dat[ia], gu.dat[ib], gu.dat[ic], gu.dat[id])
 
-		dat3[i] = v
-
-		var o = i * 4
-		d[o +0] = v * 255 |0
-		d[o +1] = v * 255 |0
-		d[o +2] = v * 255 |0
-		d[o +3] = 255
+		g.dat[i] = v
 	}
-
-	ctx3.putImageData(pix3, 0, 0)
 }
 
 
@@ -221,11 +219,4 @@ function generate3() {
 function onResize() {
 	var w = window.innerWidth
 	,   h = window.innerHeight
-
-
-	draw()
-}
-
-function draw() {
-
 }

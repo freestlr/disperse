@@ -10,6 +10,14 @@ var bg = null
 var bgSize = 256
 
 var filter = cubic
+var filters = [
+	nearest,
+	linear,
+	smoothstep,
+	smootherstep,
+	cubic,
+	tangent
+]
 
 var g = {}
 
@@ -21,8 +29,8 @@ var mt = new MersenneTwister
 
 // var g0 = makeCanvasSet(s, s, { imageRendering: 'auto' })
 var g1 = makeCanvasSet(s, s)
-var g2 = makeCanvasSet(s * i, s)
 var g4 = makeCanvasSet(s, s * i)
+var g2 = makeCanvasSet(s * i, s)
 var g3 = makeCanvasSet(s * i, s * i)
 
 
@@ -217,6 +225,16 @@ function linear(x, a, b, c, d) {
 	return (c - b) * x + b
 }
 
+function smoothstep(x, a, b, c, d) {
+	var t = x * x * (3 - 2 * x)
+	return b + (c - b) * t
+}
+
+function smootherstep(x, a, b, c, d) {
+	var t = x * x * x * (x * (x * 6 - 15) + 10)
+	return b + (c - b) * t
+}
+
 function cubic(x, a, b, c, d) {
 	return b + 0.5 * x*(c - a + x*(2*a - 5*b + 4*c - d + x*(3*(b - c) + d - a)))
 }
@@ -229,34 +247,19 @@ function tangent(x, a, b, c, d) {
 }
 
 function onKey(e) {
-	var key = String.fromCharCode(e.keyCode).toLowerCase()
-	switch(e.keyCode) {
+	var cod = e.keyCode
+	var key = String.fromCharCode(cod).toLowerCase()
+	if(cod >= 49 && cod <= 57) {
+		filter = filters[cod - 49] || nearest
+		run()
+
+	} else switch(cod) {
 		case 189: // -
 			backgroundResize(1/2)
 		break
 
 		case 187: // =
 			backgroundResize(2)
-		break
-
-		case 49: // 1
-			filter = nearest
-			run()
-		break
-
-		case 50: // 2
-			filter = linear
-			run()
-		break
-
-		case 51: // 3
-			filter = cubic
-			run()
-		break
-
-		case 52: // 4
-			filter = tangent
-			run()
 		break
 
 		case 32: // space

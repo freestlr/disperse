@@ -19,6 +19,8 @@ var filters = [
 	tangent
 ]
 
+var edgeRepeat = true
+
 var g = {}
 
 
@@ -176,10 +178,10 @@ function interh(dst, src, func) {
 
 		var p = (x - x1 * sw) / sw
 
-		var xa = (x1 || src.w) - 1
-		var xb = x1
-		var xc = (x1 + 1) % src.w
-		var xd = (x1 + 2) % src.w
+		var xa = edgeRepeat ? (x1 || src.w) - 1 : Math.max(0, x1 - 1)
+		var xb = edgeRepeat ? x1                : x1
+		var xc = edgeRepeat ? (x1 + 1) % src.w  : Math.min(src.w - 1, x1 + 1)
+		var xd = edgeRepeat ? (x1 + 2) % src.w  : Math.min(src.w - 1, x1 + 2)
 
 		var a = src.dat[y1 * src.w + xa]
 		var b = src.dat[y1 * src.w + xb]
@@ -203,10 +205,10 @@ function interv(dst, src, func) {
 
 		var p = y / sh - y1
 
-		var ya = (y1 || src.h) - 1
-		var yb = y1
-		var yc = (y1 + 1) % src.h
-		var yd = (y1 + 2) % src.h
+		var ya = edgeRepeat ? (y1 || src.h) - 1 : Math.max(0, y1 - 1)
+		var yb = edgeRepeat ? y1                : y1
+		var yc = edgeRepeat ? (y1 + 1) % src.h  : Math.min(src.h - 1, y1 + 1)
+		var yd = edgeRepeat ? (y1 + 2) % src.h  : Math.min(src.h - 1, y1 + 2)
 
 		var a = src.dat[ya * src.w + x1]
 		var b = src.dat[yb * src.w + x1]
@@ -264,6 +266,11 @@ function onKey(e) {
 
 		case 32: // space
 			rerun()
+		break
+
+		case 69: // e
+			edgeRepeat = !edgeRepeat
+			run()
 		break
 
 		default:

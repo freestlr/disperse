@@ -4,7 +4,7 @@ var seed = 543334
 
 
 var s = 8
-var i = 16
+var i = 32
 
 var bg = null
 var bgSize = 256
@@ -20,6 +20,7 @@ var filters = [
 ]
 
 var edgeRepeat = true
+var useComponent = 0
 
 var g = {}
 
@@ -45,16 +46,16 @@ function run() {
 	interv(g3, g2, filter)
 
 	// draw(g0, g1.dat)
-	draw(g1, g1.dat)
-	draw(g2, g2.dat)
-	draw(g3, g3.dat)
-	draw(g4, g4.dat)
+	draw(g1, g1)
+	draw(g2, g2)
+	draw(g3, g3)
+	draw(g4, g4)
 
 	backgroundCapture()
 }
 
 function rerun(set) {
-	seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)
+	seed ++
 	run()
 }
 
@@ -80,8 +81,11 @@ function makeCanvasSet(w, h, options) {
 	var opt = options || {}
 	var cvs = dom.elem('canvas', null, document.body)
 	var ctx = cvs.getContext('2d')
-	var dat = new Float32Array(w * h)
+	// var dat = new Float32Array(w * h)
 	var pix = ctx.createImageData(w, h)
+
+	var vx = new Float32Array(w * h)
+	var vy = new Float32Array(w * h)
 
 	cvs.width = w
 	cvs.height = h
@@ -96,9 +100,11 @@ function makeCanvasSet(w, h, options) {
 	var set = {
 		w: w,
 		h: h,
+		vx: vx,
+		vy: vy,
 		cvs: cvs,
 		ctx: ctx,
-		dat: dat,
+		// dat: dat,
 		pix: pix,
 	}
 
@@ -139,18 +145,44 @@ function backgroundResize(scale) {
 }
 
 
-function draw(g, dat) {
+function draw(g, gs) {
 	var d = g.pix.data
+	var vx = gs.vx
+	var vy = gs.vy
 	for(var y = 0; y < g.h; y++)
 	for(var x = 0; x < g.w; x++) {
 		var i = y * g.w + x
 		var o = i * 4
-		var v = dat[i]
+		// var v = dat[i] *.5 +.5
+		var px = vx[i]
+		var py = vy[i]
+		var pz = -1
+		var pa = 1
 
-		d[o +0] = v * 255 |0
-		d[o +1] = v * 255 |0
-		d[o +2] = v * 255 |0
-		d[o +3] = 255
+		switch(useComponent) {
+			case 0:
+			case 1:
+				px = py = pz = [px, py][useComponent]
+			break
+
+			case 2:
+			break
+
+			case 3:
+				var pl = Math.min(1, px * px + py * py)
+				pz = Math.sqrt(1 - pl)
+				var dl = 1 / Math.sqrt(px * px + py * py + pz * pz)
+				px *= dl
+				py *= dl
+				pz *= dl
+				if(isNaN(pz)) debugger
+			break
+		}
+
+		d[o +0] = (px *.5 +.5) * 255 |0
+		d[o +1] = (py *.5 +.5) * 255 |0
+		d[o +2] = (pz *.5 +.5) * 255 |0
+		d[o +3] = pa * 255 |0
 	}
 
 	g.ctx.putImageData(g.pix, 0, 0)
@@ -161,13 +193,24 @@ function generate(g) {
 	for(var x = 0; x < g.w; x++) {
 		var i = y * g.w + x
 
-		g.dat[i] = mt.random()
+		// g.dat[i] = mt.random() * 2 - 1
+
+		var px = mt.random() * 2 - 1
+		var py = mt.random() * 2 - 1
+		var pl = 1 / Math.max(1, Math.sqrt(px * px + py * py))
+
+		g.vx[i] = px // * pl
+		g.vy[i] = py // * pl
 	}
 }
 
 function interh(dst, src, func) {
 	var sw = dst.w / src.w
 	var sh = dst.h / src.h
+	var svx = src.vx
+	var svy = src.vy
+	var dvx = dst.vx
+	var dvy = dst.vy
 
 	for(var y = 0; y < dst.h; y++)
 	for(var x = 0; x < dst.w; x++) {
@@ -176,19 +219,27 @@ function interh(dst, src, func) {
 		var x1 = x / sw |0
 		var y1 = y / sh |0
 
-		var p = (x - x1 * sw) / sw
+		var px = (x - x1 * sw) / sw
 
 		var xa = edgeRepeat ? (x1 || src.w) - 1 : Math.max(0, x1 - 1)
 		var xb = edgeRepeat ? x1                : x1
 		var xc = edgeRepeat ? (x1 + 1) % src.w  : Math.min(src.w - 1, x1 + 1)
 		var xd = edgeRepeat ? (x1 + 2) % src.w  : Math.min(src.w - 1, x1 + 2)
 
-		var a = src.dat[y1 * src.w + xa]
-		var b = src.dat[y1 * src.w + xb]
-		var c = src.dat[y1 * src.w + xc]
-		var d = src.dat[y1 * src.w + xd]
+		var ai = y1 * src.w + xa
+		var bi = y1 * src.w + xb
+		var ci = y1 * src.w + xc
+		var di = y1 * src.w + xd
 
-		dst.dat[i] = func(p, a, b, c, d)
+		// var a = src.dat[y1 * src.w + xa]
+		// var b = src.dat[y1 * src.w + xb]
+		// var c = src.dat[y1 * src.w + xc]
+		// var d = src.dat[y1 * src.w + xd]
+
+		// dst.dat[i] = func(px, a, b, c, d)
+
+		dst.vx[i] = func(px, src.vx[ai], src.vx[bi], src.vx[ci], src.vx[di])
+		dst.vy[i] = func(px, src.vy[ai], src.vy[bi], src.vy[ci], src.vy[di])
 	}
 }
 
@@ -203,19 +254,27 @@ function interv(dst, src, func) {
 		var x1 = x / sw |0
 		var y1 = y / sh |0
 
-		var p = y / sh - y1
+		var py = y / sh - y1
 
 		var ya = edgeRepeat ? (y1 || src.h) - 1 : Math.max(0, y1 - 1)
 		var yb = edgeRepeat ? y1                : y1
 		var yc = edgeRepeat ? (y1 + 1) % src.h  : Math.min(src.h - 1, y1 + 1)
 		var yd = edgeRepeat ? (y1 + 2) % src.h  : Math.min(src.h - 1, y1 + 2)
 
-		var a = src.dat[ya * src.w + x1]
-		var b = src.dat[yb * src.w + x1]
-		var c = src.dat[yc * src.w + x1]
-		var d = src.dat[yd * src.w + x1]
+		var ai = ya * src.w + x1
+		var bi = yb * src.w + x1
+		var ci = yc * src.w + x1
+		var di = yd * src.w + x1
 
-		dst.dat[i] = func(p, a, b, c, d)
+		// var a = src.dat[ya * src.w + x1]
+		// var b = src.dat[yb * src.w + x1]
+		// var c = src.dat[yc * src.w + x1]
+		// var d = src.dat[yd * src.w + x1]
+
+		// dst.dat[i] = func(py, a, b, c, d)
+
+		dst.vx[i] = func(py, src.vx[ai], src.vx[bi], src.vx[ci], src.vx[di])
+		dst.vy[i] = func(py, src.vy[ai], src.vy[bi], src.vy[ci], src.vy[di])
 	}
 }
 
@@ -244,8 +303,10 @@ function cubic(x, a, b, c, d) {
 function tangent(x, a, b, c, d) {
 	var kb = b *2 -1
 	var kc = c *2 -1
-	return linear(x, 0, x * kb, (x - 1) * kc, 0) +.5
-	// return (x * kb * (1 - x) + (x - 1) * kc * x) *.5 +.5
+	var t = x - 0.5
+	var tb = t * kb
+	var tc = (t - 1) * kc
+	return t * (tc - tb) + tb + 0.5
 }
 
 function onKey(e) {
@@ -270,6 +331,11 @@ function onKey(e) {
 
 		case 69: // e
 			edgeRepeat = !edgeRepeat
+			run()
+		break
+
+		case 88: // x
+			useComponent = (useComponent + 1) % 4
 			run()
 		break
 

@@ -22,6 +22,7 @@ var filters = [
 var edgeRepeat = true
 var useComponent = 0
 var useNormal = false
+var normalHeight = -1.4
 
 
 
@@ -29,10 +30,10 @@ var mt = new MersenneTwister
 
 
 
-var g1 = makeSet(s, s)
-// var g4 = makeSet(s, s * i)
-var g2 = makeSet(s * i, s)
-var g3 = makeSet(s * i, s * i)
+var g1 = makeSet2(s, s)
+// var g4 = makeSet2(s, s * i)
+var g2 = makeSet2(s * i, s)
+var g3 = makeSet2(s * i, s * i)
 
 // var can0 = makeCanvas(s, s, { imageRendering: 'auto' })
 var can1 = makeCanvas(s * i, s * i)
@@ -64,6 +65,21 @@ function rerun(set) {
 
 
 
+var inputHeight = new Block.RangeInput({
+	eroot: document.body,
+	min: -2,
+	max: 0,
+	// position: 0.5,
+	value: normalHeight,
+	wheelStep: 1/24,
+	wheelElement: window,
+	wheelTimeDelta: 33
+})
+
+inputHeight.events.on('change', function(v) {
+	normalHeight = v
+	run()
+})
 
 new EventHandler(onResize).listen('resize', window)
 new EventHandler(onKey).listen('keydown', window)
@@ -78,12 +94,21 @@ run()
 
 
 
-function makeSet(w, h) {
+function makeSet2(w, h) {
 	return {
 		w: w,
 		h: h,
 		vx: new Float32Array(w * h),
 		vy: new Float32Array(w * h),
+	}
+}
+function makeSet3(w, h, d) {
+	return {
+		w: w,
+		h: h,
+		d: d,
+		vx: new Float32Array(w * h * d),
+		vy: new Float32Array(w * h * d),
 	}
 }
 function makeCanvas(w, h, options) {
@@ -173,6 +198,7 @@ function draw(g, gs) {
 		var cz = -1
 		var ca = 1
 
+		var nh = Math.pow(10, normalHeight)
 
 		if(useComponent < 2) {
 			var v = [vx, vy][useComponent]
@@ -191,6 +217,9 @@ function draw(g, gs) {
 				var dy = (py - ny)// / 2
 				var norm = vnor(vvcross(vnor([1, 0, dx]), vnor([0, 1, dy])))
 
+				norm[2] *= nh
+				norm = vnor(norm)
+
 				cx = norm[0]
 				cy = norm[1]
 				cz = norm[2]
@@ -201,7 +230,7 @@ function draw(g, gs) {
 		} else {
 			if(useNormal) {
 				var pl = Math.min(1, cx * cx + cy * cy)
-				cz = Math.sqrt(1 - pl)
+				cz = Math.sqrt(1 - pl) * nh
 				var dl = 1 / Math.sqrt(cx * cx + cy * cy + cz * cz)
 				cx *= dl
 				cy *= dl

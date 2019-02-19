@@ -1,0 +1,234 @@
+.range-input {
+	position: relative;
+	height: 40px;
+}
+.range-wrap {
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	height: 100%;
+}
+.range-hit {
+	left: -8px;
+	right: -8px;
+}
+.range-bar {
+	height: 4px;
+	pointer-events: none;
+}
+.range-box {
+	position: absolute;
+	width: 100%;
+	height: 2px;
+	pointer-events: none;
+}
+.range-pin {
+	position: absolute;
+	top: 50%;
+	width: 14px;
+	height: 14px;
+	margin-top: -7px;
+	margin-left: -7px;
+	border-radius: 50%;
+	box-sizing: border-box;
+	background-clip: padding-box;
+}
+.range-pin.active {
+	background-color: #0a63ae;
+	z-index: 1;
+}
+.range-pin-text {
+	position: absolute;
+	top: -16px;
+	left: 50%;
+	margin-left: -12px;
+	width: 24px;
+	text-align: center;
+	pointer-events: none;
+}
+.range-div-list {
+}
+.range-div {
+	position: absolute;
+	top: 50%;
+	margin-top: -5px;
+	width: 1px;
+	height: 10px;
+	pointer-events: none;
+}
+.range-div-text {
+	position: absolute;
+	top: 12px;
+	margin-left: -12px;
+	width: 24px;
+	height: 12px;
+	text-align: center;
+	pointer-events: all;
+}
+.range-div-min .range-div-text {
+	left: 0;
+	margin-left: 0;
+	text-align: left;
+}
+.range-div-max .range-div-text {
+	right: 0;
+	margin-left: 0;
+	text-align: right;
+}
+
+
+
+/* colorscheme */
+.range-pin {
+	background-color: #fff;
+	border: 2px solid #0a63ae;
+}
+.range-pin-text {
+	// display: none;
+}
+.range-pin:hover {
+	background-color: #90ccff;
+	background-color: #0a63ae;
+}
+
+.range-box {
+	background-color: #888;
+}
+.range-hit:hover ~ .range-box {
+	background-color: #5692d0;
+}
+.range-bar {
+	background-color: #0A63AE;
+}
+.range-hit:hover ~ .range-bar {
+	background-color: #2182d4;
+}
+
+.range-div {
+	color: #555;
+	background-color: #888;
+}
+.range-div:hover {
+	background-color: #aaa;
+}
+.range-div:hover .range-div-text {
+	color: black;
+}
+
+
+.range-input.hold {
+
+}
+.range-pin.hold {
+	border-color: white;
+	border-color: #a7ceef;
+	border-color: transparent;
+	background-color: #90ccff;
+	background-color: #0a63ae;
+}
+.range-input.hold .range-box {
+	background-color: white;
+	background-color: #5692d0;
+}
+.range-input.hold .range-bar {
+	background-color: white;
+	background-color: #2182d4;
+}
+
+
+
+
+
+
+
+.radial-range-input {
+	width: auto;
+	height: auto;
+}
+.radial-range-input .range-wrap {
+	position: absolute;
+	left: 8px;
+	right: 8px;
+	top: 8px;
+	bottom: 8px;
+	height: auto;
+}
+.radial-range-input .range-hit {
+	top: -8px;
+	left: -8px;
+	right: -8px;
+	bottom: -8px;
+}
+.radial-range-input .range-bar {
+	height: 100%;
+	background-color: transparent;
+}
+.radial-range-input .range-box {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	background-color: transparent;
+	border-radius: 50%;
+	border: 2px solid #888;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+.radial-range-input .graphics {
+	pointer-events: none;
+}
+.radial-range-svg {
+	pointer-events: none;
+	stroke-linecap: round;
+}
+.radial-range-line {
+	stroke: #0a63ae;
+}
+.radial-label {
+	font-weight: bold;
+	font-size: 10px;
+	width: 20px;
+	height: 20px;
+	line-height: 20px;
+	text-align: center;
+	pointer-events: none;
+	color: #888;
+	z-index: -1;
+}
+.radial-label-top {
+	bottom: auto;
+	top: -8px;
+}
+.radial-label-right {
+	left: auto;
+	right: -8px;
+}
+.radial-label-left {
+	right: auto;
+	left: -8px;
+}
+.radial-label-bottom {
+	top: auto;
+	bottom: -8px;
+}
+
+
+.radial-range-input:hover .range-box {
+	background-color: transparent;
+	//border-color: #90ccff;
+}
+.radial-range-input .range-hit:hover ~ .range-box,
+.radial-range-input .range-hit:hover ~ .range-bar {
+	background-color: transparent;
+}
+
+
+.radial-range-input.hold {
+}
+.radial-range-input .range-pin.hold {
+}
+.radial-range-input.hold .range-box {
+	background-color: transparent;
+}
+.radial-range-input.hold .range-bar {
+	background-color: transparent;
+}

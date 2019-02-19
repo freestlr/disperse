@@ -21,6 +21,7 @@ var filters = [
 
 var edgeRepeat = true
 var useComponent = 0
+var useNormal = false
 
 var g = {}
 
@@ -133,6 +134,7 @@ function backgroundCapture(set) {
 	f.copy(document.body.style, {
 		'background-image': bg ? 'url('+ bg.cvs.toDataURL() +')' : '',
 		'background-position': '0 0',
+		'background-color': 'white',
 	})
 }
 
@@ -145,6 +147,10 @@ function backgroundResize(scale) {
 }
 
 
+function wrap(i, s) {
+	return edgeRepeat ? ((i % s) + s) % s : Math.max(0, Math.min(s - 1, i))
+}
+
 function draw(g, gs) {
 	var d = g.pix.data
 	var vx = gs.vx
@@ -154,35 +160,53 @@ function draw(g, gs) {
 		var i = y * g.w + x
 		var o = i * 4
 		// var v = dat[i] *.5 +.5
-		var px = vx[i]
-		var py = vy[i]
-		var pz = -1
-		var pa = 1
+		var cx = vx[i]
+		var cy = vy[i]
+		var cz = -1
+		var ca = 1
 
-		switch(useComponent) {
-			case 0:
-			case 1:
-				px = py = pz = [px, py][useComponent]
-			break
 
-			case 2:
-			break
+		if(useComponent < 2) {
+			var v = [vx, vy][useComponent]
 
-			case 3:
-				var pl = Math.min(1, px * px + py * py)
-				pz = Math.sqrt(1 - pl)
-				var dl = 1 / Math.sqrt(px * px + py * py + pz * pz)
-				px *= dl
-				py *= dl
-				pz *= dl
-				if(isNaN(pz)) debugger
-			break
+			if(useNormal) {
+				var pxi = wrap(x + 1, g.w)
+				var nxi = wrap(x - 1, g.w)
+				var pyi = wrap(y + 1, g.h)
+				var nyi = wrap(y - 1, g.h)
+
+				var nx = v[nxi + y * g.w]
+				var px = v[pxi + y * g.w]
+				var ny = v[x + nyi * g.w]
+				var py = v[x + pyi * g.w]
+				var dx = (px - nx)// / 2
+				var dy = (py - ny)// / 2
+				var norm = vnor(vvcross(vnor([1, 0, dx]), vnor([0, 1, dy])))
+
+				cx = norm[0]
+				cy = norm[1]
+				cz = norm[2]
+			} else {
+				cx = cy = cz = v[i]
+			}
+
+		} else {
+			if(useNormal) {
+				var pl = Math.min(1, cx * cx + cy * cy)
+				cz = Math.sqrt(1 - pl)
+				var dl = 1 / Math.sqrt(cx * cx + cy * cy + cz * cz)
+				cx *= dl
+				cy *= dl
+				cz *= dl
+			} else {
+
+			}
 		}
 
-		d[o +0] = (px *.5 +.5) * 255 |0
-		d[o +1] = (py *.5 +.5) * 255 |0
-		d[o +2] = (pz *.5 +.5) * 255 |0
-		d[o +3] = pa * 255 |0
+		d[o +0] = (cx *.5 +.5) * 255 |0
+		d[o +1] = (cy *.5 +.5) * 255 |0
+		d[o +2] = (cz *.5 +.5) * 255 |0
+		d[o +3] = ca * 255 |0
 	}
 
 	g.ctx.putImageData(g.pix, 0, 0)
@@ -221,10 +245,10 @@ function interh(dst, src, func) {
 
 		var px = (x - x1 * sw) / sw
 
-		var xa = edgeRepeat ? (x1 || src.w) - 1 : Math.max(0, x1 - 1)
-		var xb = edgeRepeat ? x1                : x1
-		var xc = edgeRepeat ? (x1 + 1) % src.w  : Math.min(src.w - 1, x1 + 1)
-		var xd = edgeRepeat ? (x1 + 2) % src.w  : Math.min(src.w - 1, x1 + 2)
+		var xa = wrap(x1 - 1, src.w)
+		var xb = x1
+		var xc = wrap(x1 + 1, src.w)
+		var xd = wrap(x1 + 2, src.w)
 
 		var ai = y1 * src.w + xa
 		var bi = y1 * src.w + xb
@@ -256,10 +280,10 @@ function interv(dst, src, func) {
 
 		var py = y / sh - y1
 
-		var ya = edgeRepeat ? (y1 || src.h) - 1 : Math.max(0, y1 - 1)
-		var yb = edgeRepeat ? y1                : y1
-		var yc = edgeRepeat ? (y1 + 1) % src.h  : Math.min(src.h - 1, y1 + 1)
-		var yd = edgeRepeat ? (y1 + 2) % src.h  : Math.min(src.h - 1, y1 + 2)
+		var ya = wrap(y1 - 1, src.h)
+		var yb = y1
+		var yc = wrap(y1 + 1, src.h)
+		var yd = wrap(y1 + 2, src.h)
 
 		var ai = ya * src.w + x1
 		var bi = yb * src.w + x1
@@ -309,6 +333,22 @@ function tangent(x, a, b, c, d) {
 	return t * (tc - tb) + tb + 0.5
 }
 
+function vlen(a) {
+	return Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2])
+}
+function vsdiv(a, v) {
+	return [a[0] / v, a[1] / v, a[2] / v]
+}
+function vnor(a) {
+	return vsdiv(a, vlen(a))
+}
+function vvcross(a, b) {
+	return [
+		a[1] * b[2] - a[2] * b[1],
+		a[2] * b[0] - a[0] * b[2],
+		a[0] * b[1] - a[1] * b[0]]
+}
+
 function onKey(e) {
 	var cod = e.keyCode
 	var key = String.fromCharCode(cod).toLowerCase()
@@ -335,7 +375,12 @@ function onKey(e) {
 		break
 
 		case 88: // x
-			useComponent = (useComponent + 1) % 4
+			useComponent = (useComponent + 1) % 3
+			run()
+		break
+
+		case 90: // z
+			useNormal = !useNormal
 			run()
 		break
 

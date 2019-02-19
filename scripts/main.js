@@ -23,19 +23,19 @@ var edgeRepeat = true
 var useComponent = 0
 var useNormal = false
 
-var g = {}
-
 
 
 var mt = new MersenneTwister
 
 
 
-// var g0 = makeCanvasSet(s, s, { imageRendering: 'auto' })
-var g1 = makeCanvasSet(s, s)
-var g4 = makeCanvasSet(s, s * i)
-var g2 = makeCanvasSet(s * i, s)
-var g3 = makeCanvasSet(s * i, s * i)
+var g1 = makeSet(s, s)
+// var g4 = makeSet(s, s * i)
+var g2 = makeSet(s * i, s)
+var g3 = makeSet(s * i, s * i)
+
+// var can0 = makeCanvas(s, s, { imageRendering: 'auto' })
+var can1 = makeCanvas(s * i, s * i)
 
 
 function run() {
@@ -43,14 +43,14 @@ function run() {
 
 	generate(g1)
 	interh(g2, g1, filter)
-	interv(g4, g1, filter)
+	// interv(g4, g1, filter)
 	interv(g3, g2, filter)
 
-	// draw(g0, g1.dat)
-	draw(g1, g1)
-	draw(g2, g2)
-	draw(g3, g3)
-	draw(g4, g4)
+	// draw(can0, g1.dat)
+	// draw(can1, g1)
+	// draw(can2, g2)
+	draw(can1, g3)
+	// draw(can4, g4)
 
 	backgroundCapture()
 }
@@ -78,15 +78,23 @@ run()
 
 
 
-function makeCanvasSet(w, h, options) {
+function makeSet(w, h) {
+	return {
+		w: w,
+		h: h,
+		vx: new Float32Array(w * h),
+		vy: new Float32Array(w * h),
+	}
+}
+function makeCanvas(w, h, options) {
 	var opt = options || {}
 	var cvs = dom.elem('canvas', null, document.body)
 	var ctx = cvs.getContext('2d')
 	// var dat = new Float32Array(w * h)
 	var pix = ctx.createImageData(w, h)
 
-	var vx = new Float32Array(w * h)
-	var vy = new Float32Array(w * h)
+	// var vx = new Float32Array(w * h)
+	// var vy = new Float32Array(w * h)
 
 	cvs.width = w
 	cvs.height = h
@@ -101,8 +109,8 @@ function makeCanvasSet(w, h, options) {
 	var set = {
 		w: w,
 		h: h,
-		vx: vx,
-		vy: vy,
+		// vx: vx,
+		// vy: vy,
 		cvs: cvs,
 		ctx: ctx,
 		// dat: dat,

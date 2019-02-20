@@ -71,7 +71,7 @@ function xrun() {
 function drawSlice() {
 	draw(can1, g4, currentZ)
 
-	backgroundCapture()
+	backgroundUpdate()
 
 	updateStats()
 }
@@ -197,7 +197,6 @@ function onCanvasClick(set) {
 }
 
 function backgroundCapture(set) {
-	var prev = currentBackground
 	currentBackground = set
 	backgroundUpdate()
 }

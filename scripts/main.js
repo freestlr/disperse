@@ -6,7 +6,6 @@ var seed = 543334
 var s = 8
 var i = 32
 
-var bg = null
 var bgSize = 256
 
 var filter = cubic
@@ -19,6 +18,7 @@ var filters = [
 	tangent
 ]
 
+var currentBackground = null
 var edgeRepeat = true
 var useComponent = 0
 var drawNormal = true
@@ -185,13 +185,11 @@ function makeCanvas(w, h, options) {
 }
 
 function onCanvasEnter(set) {
-	bg = set
-	backgroundCapture()
+	backgroundCapture(set)
 }
 
 function onCanvasLeave(set) {
-	bg = null
-	backgroundCapture()
+	backgroundCapture(null)
 }
 
 function onCanvasClick(set) {
@@ -199,6 +197,13 @@ function onCanvasClick(set) {
 }
 
 function backgroundCapture(set) {
+	var prev = currentBackground
+	currentBackground = set
+	backgroundUpdate()
+}
+
+function backgroundUpdate(set) {
+	var bg = currentBackground
 	f.copy(document.body.style, {
 		'background-image': bg ? 'url('+ bg.cvs.toDataURL() +')' : '',
 		'background-position': '0 0',

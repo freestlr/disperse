@@ -40,6 +40,10 @@ var can1 = makeCanvas(s * i, s * i)
 
 
 function run() {
+	perf.call(xrun)
+}
+
+function xrun() {
 	mt.init(seed)
 
 	// generate(g1)
@@ -82,6 +86,7 @@ function updateStats() {
 	var fmt = ['%n:', 'last', '%l', 'avg', '%a', 'best', '%b', 'worst', '%w', 'cycles', '%c', 'time', '%t']
 
 	dom.text(outStats, f.tformat([
+		perf.format(fmt, 'xrun'),
 		perf.format(fmt, 'generate'),
 		perf.format(fmt, 'interh'),
 		perf.format(fmt, 'interv'),

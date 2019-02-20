@@ -1,5 +1,5 @@
 var perf = {
-	precision: 4,
+	precision: Infinity,
 	values: {},
 
 	time: function() {
@@ -9,7 +9,9 @@ var perf = {
 	},
 
 	round: function(v) {
-		return perf.precision === 'a' ? f.cround(v) : f.mround(v, perf.precision)
+		return perf.precision === -Infinity ? f.cround(v)
+			: perf.precision === Infinity ? v
+			: f.mround(v, perf.precision)
 	},
 
 	start: function(name) {

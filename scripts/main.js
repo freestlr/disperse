@@ -21,8 +21,9 @@ var filters = [
 
 var edgeRepeat = true
 var useComponent = 0
-var useNormal = false
+var useNormal = true
 var normalHeight = -1.4
+var currentZ = 0
 
 
 
@@ -30,12 +31,15 @@ var mt = new MersenneTwister
 
 
 
-var g1 = makeSet2(s, s)
-// var g4 = makeSet2(s, s * i)
-var g2 = makeSet2(s * i, s)
-var g3 = makeSet2(s * i, s * i)
+// var g1 = makeSet2(s, s)
+// var g2 = makeSet2(s * i, s)
+// var g3 = makeSet2(s * i, s * i)
 
-// var can0 = makeCanvas(s, s, { imageRendering: 'auto' })
+var g1 = makeSet3(s, s, s)
+var g2 = makeSet3(s * i, s, s)
+var g3 = makeSet3(s * i, s * i, s)
+var g4 = makeSet3(s * i, s * i, s * i)
+
 var can1 = makeCanvas(s * i, s * i)
 
 
@@ -49,14 +53,24 @@ function xrun() {
 	// generate(g1)
 	perf.call(generate, g1)
 
-	// interh(g2, g1, filter)
-	perf.call(interh, g2, g1, filter)
+	// // interh(g2, g1, filter)
+	// perf.call(interh, g2, g1, filter)
 
-	// interv(g3, g2, filter)
-	perf.call(interv, g3, g2, filter)
+	// // interv(g3, g2, filter)
+	// perf.call(interv, g3, g2, filter)
+
+	perf.call(inter, g2, g1, 1, 0, 0, filter)
+	perf.call(inter, g3, g2, 0, 1, 0, filter)
+	perf.call(inter, g4, g3, 0, 0, 1, filter)
 
 	// draw(can1, g3)
-	perf.call(draw, can1, g3)
+	drawSlice()
+
+	// updateStats()
+}
+
+function drawSlice() {
+	perf.call(draw, can1, g4, currentZ)
 
 	backgroundCapture()
 
@@ -88,8 +102,7 @@ function updateStats() {
 	dom.text(outStats, f.tformat([
 		perf.format(fmt, 'xrun'),
 		perf.format(fmt, 'generate'),
-		perf.format(fmt, 'interh'),
-		perf.format(fmt, 'interv'),
+		perf.format(fmt, 'inter'),
 		perf.format(fmt, 'draw'),
 	]))
 }
@@ -107,7 +120,7 @@ var inputHeight = new Block.RangeInput({
 
 inputHeight.events.on('change', function(v) {
 	normalHeight = v
-	run()
+	drawSlice()
 })
 
 new EventHandler(onResize).listen('resize', window)
@@ -119,6 +132,7 @@ onResize()
 backgroundCapture(null)
 backgroundResize(1)
 run()
+loop()
 
 
 
@@ -127,6 +141,7 @@ function makeSet2(w, h) {
 	return {
 		w: w,
 		h: h,
+		d: 1,
 		vx: new Float32Array(w * h),
 		// vy: new Float32Array(w * h),
 	}
@@ -209,18 +224,30 @@ function backgroundResize(scale) {
 }
 
 
-function wrap(i, s) {
-	return edgeRepeat ? ((i % s) + s) % s : Math.max(0, Math.min(s - 1, i))
+function wrap(i, l) {
+	return edgeRepeat ? ((i % l) + l) % l : Math.max(0, Math.min(l - 1, i))
 }
 
-function draw(g, gs) {
-	var d = g.pix.data
-	var vx = gs.vx
-	// var vy = gs.vy
-	for(var y = 0; y < g.h; y++)
-	for(var x = 0; x < g.w; x++) {
-		var i = y * g.w + x
-		var o = i * 4
+function get2(x, y, w, h) {
+	return wrap(x, w) + wrap(y, h) * w
+}
+
+function get3(x, y, z, w, h, d) {
+	return wrap(x, w) + wrap(y, h) * w + wrap(z, d) * w * h
+}
+
+function draw(can, g, z) {
+	var m = can.pix.data
+
+	var w = g.w
+	var h = g.h
+	var d = g.d
+	var vx = g.vx
+	// var vy = g.vy
+	for(var y = 0; y < h; y++)
+	for(var x = 0; x < w; x++) {
+		var i = z * w * h + y * w + x
+		var o = (y * w + x) * 4
 		// var v = dat[i] *.5 +.5
 		var cx = vx[i]
 		// var cy = vy[i]
@@ -235,15 +262,11 @@ function draw(g, gs) {
 			var v = vx
 
 			if(useNormal) {
-				var pxi = wrap(x + 1, g.w)
-				var nxi = wrap(x - 1, g.w)
-				var pyi = wrap(y + 1, g.h)
-				var nyi = wrap(y - 1, g.h)
+				var nx = v[get3(x - 1, y, z, w, h, d)]
+				var px = v[get3(x + 1, y, z, w, h, d)]
+				var ny = v[get3(x, y - 1, z, w, h, d)]
+				var py = v[get3(x, y + 1, z, w, h, d)]
 
-				var nx = v[nxi + y * g.w]
-				var px = v[pxi + y * g.w]
-				var ny = v[x + nyi * g.w]
-				var py = v[x + pyi * g.w]
 				var dx = (px - nx)// / 2
 				var dy = (py - ny)// / 2
 				var norm = vnor(vvcross(vnor([1, 0, dx]), vnor([0, 1, dy])))
@@ -271,28 +294,65 @@ function draw(g, gs) {
 			}
 		}
 
-		d[o +0] = (cx *.5 +.5) * 255 |0
-		d[o +1] = (cy *.5 +.5) * 255 |0
-		d[o +2] = (cz *.5 +.5) * 255 |0
-		d[o +3] = ca * 255 |0
+		m[o +0] = (cx *.5 +.5) * 255 |0
+		m[o +1] = (cy *.5 +.5) * 255 |0
+		m[o +2] = (cz *.5 +.5) * 255 |0
+		m[o +3] = ca * 255 |0
 	}
 
-	g.ctx.putImageData(g.pix, 0, 0)
+	can.ctx.putImageData(can.pix, 0, 0)
 }
 
 function generate(g) {
-	for(var y = 0; y < g.h; y++)
-	for(var x = 0; x < g.w; x++) {
-		var i = y * g.w + x
+	var w = g.w
+	var h = g.h
+	var d = g.d
+	for(var z = 0; z < d; z++)
+	for(var y = 0; y < h; y++)
+	for(var x = 0; x < w; x++) {
+		var i = z * w * h + y * w + x
+		var v = mt.random() * 2 - 1
 
-		// g.dat[i] = mt.random() * 2 - 1
+		g.vx[i] = v
+	}
+}
 
-		var px = mt.random() * 2 - 1
-		// var py = mt.random() * 2 - 1
-		// var pl = 1 / Math.max(1, Math.sqrt(px * px + py * py))
 
-		g.vx[i] = px // * pl
-		// g.vy[i] = py // * pl
+function inter(dst, src, dx, dy, dz, func) {
+	var sw = src.w
+	var sh = src.h
+	var sd = src.d
+	var sv = src.vx
+
+	var dw = dst.w
+	var dh = dst.h
+	var dd = dst.d
+	var dv = dst.vx
+
+	var kw = dst.w / src.w
+	var kh = dst.h / src.h
+	var kd = dst.d / src.d
+
+
+	for(var z = 0; z < dd; z++)
+	for(var y = 0; y < dh; y++)
+	for(var x = 0; x < dw; x++) {
+		var i = z * dw * dh + y * dw + x
+
+		var x1 = x / kw |0
+		var y1 = y / kh |0
+		var z1 = z / kd |0
+
+		var px = x / kw - x1
+		var py = y / kh - y1
+		var pz = z / kd - z1
+
+		var a = sv[get3(x1 - 1 * dx, y1 - 1 * dy, z1 - 1 * dz, sw, sh, sd)]
+		var b = sv[get3(x1 - 0 * dx, y1 - 0 * dy, z1 - 0 * dz, sw, sh, sd)]
+		var c = sv[get3(x1 + 1 * dx, y1 + 1 * dy, z1 + 1 * dz, sw, sh, sd)]
+		var d = sv[get3(x1 + 2 * dx, y1 + 2 * dy, z1 + 2 * dz, sw, sh, sd)]
+
+		dv[i] = func(px * dx + py * dy + pz * dz, a, b, c, d)
 	}
 }
 
@@ -313,15 +373,20 @@ function interh(dst, src, func) {
 
 		var px = (x - x1 * sw) / sw
 
-		var xa = wrap(x1 - 1, src.w)
-		var xb = x1
-		var xc = wrap(x1 + 1, src.w)
-		var xd = wrap(x1 + 2, src.w)
+		// var xa = wrap(x1 - 1, src.w)
+		// var xb = x1
+		// var xc = wrap(x1 + 1, src.w)
+		// var xd = wrap(x1 + 2, src.w)
 
-		var ai = y1 * src.w + xa
-		var bi = y1 * src.w + xb
-		var ci = y1 * src.w + xc
-		var di = y1 * src.w + xd
+		// var ai = y1 * src.w + xa
+		// var bi = y1 * src.w + xb
+		// var ci = y1 * src.w + xc
+		// var di = y1 * src.w + xd
+
+		var ai = get2(x1 -1, y1, src.w, src.h)
+		var bi = get2(x1 -0, y1, src.w, src.h)
+		var ci = get2(x1 +1, y1, src.w, src.h)
+		var di = get2(x1 +2, y1, src.w, src.h)
 
 		// var a = src.dat[y1 * src.w + xa]
 		// var b = src.dat[y1 * src.w + xb]
@@ -433,6 +498,11 @@ function onKey(e) {
 			backgroundResize(2)
 		break
 
+		case 13: // enter
+			for(var name in perf.values) perf.flushLocal(name)
+			updateStats()
+		break
+
 		case 32: // space
 			rerun()
 		break
@@ -452,6 +522,16 @@ function onKey(e) {
 			run()
 		break
 
+		case 78: // n
+			currentZ = (currentZ + 1) % (s * i)
+			drawSlice()
+		break
+
+		case 80: // p
+			currentZ = (currentZ || (s * i)) - 1
+			drawSlice()
+		break
+
 		default:
 			console.log('key', e.keyCode, key)
 	}
@@ -460,4 +540,14 @@ function onKey(e) {
 function onResize() {
 	var w = window.innerWidth
 	,   h = window.innerHeight
+}
+
+
+
+
+function loop() {
+	requestAnimationFrame(loop)
+
+	currentZ = (currentZ || (s * i)) - 1
+	drawSlice()
 }

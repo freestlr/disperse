@@ -128,7 +128,7 @@ function makeSet2(w, h) {
 		w: w,
 		h: h,
 		vx: new Float32Array(w * h),
-		vy: new Float32Array(w * h),
+		// vy: new Float32Array(w * h),
 	}
 }
 function makeSet3(w, h, d) {
@@ -137,7 +137,7 @@ function makeSet3(w, h, d) {
 		h: h,
 		d: d,
 		vx: new Float32Array(w * h * d),
-		vy: new Float32Array(w * h * d),
+		// vy: new Float32Array(w * h * d),
 	}
 }
 function makeCanvas(w, h, options) {
@@ -216,21 +216,23 @@ function wrap(i, s) {
 function draw(g, gs) {
 	var d = g.pix.data
 	var vx = gs.vx
-	var vy = gs.vy
+	// var vy = gs.vy
 	for(var y = 0; y < g.h; y++)
 	for(var x = 0; x < g.w; x++) {
 		var i = y * g.w + x
 		var o = i * 4
 		// var v = dat[i] *.5 +.5
 		var cx = vx[i]
-		var cy = vy[i]
+		// var cy = vy[i]
+		var cy = -1
 		var cz = -1
 		var ca = 1
 
 		var nh = Math.pow(10, normalHeight)
 
 		if(useComponent < 2) {
-			var v = [vx, vy][useComponent]
+			// var v = [vx, vy][useComponent]
+			var v = vx
 
 			if(useNormal) {
 				var pxi = wrap(x + 1, g.w)
@@ -286,11 +288,11 @@ function generate(g) {
 		// g.dat[i] = mt.random() * 2 - 1
 
 		var px = mt.random() * 2 - 1
-		var py = mt.random() * 2 - 1
-		var pl = 1 / Math.max(1, Math.sqrt(px * px + py * py))
+		// var py = mt.random() * 2 - 1
+		// var pl = 1 / Math.max(1, Math.sqrt(px * px + py * py))
 
 		g.vx[i] = px // * pl
-		g.vy[i] = py // * pl
+		// g.vy[i] = py // * pl
 	}
 }
 
@@ -298,9 +300,9 @@ function interh(dst, src, func) {
 	var sw = dst.w / src.w
 	var sh = dst.h / src.h
 	var svx = src.vx
-	var svy = src.vy
+	// var svy = src.vy
 	var dvx = dst.vx
-	var dvy = dst.vy
+	// var dvy = dst.vy
 
 	for(var y = 0; y < dst.h; y++)
 	for(var x = 0; x < dst.w; x++) {
@@ -329,7 +331,7 @@ function interh(dst, src, func) {
 		// dst.dat[i] = func(px, a, b, c, d)
 
 		dst.vx[i] = func(px, src.vx[ai], src.vx[bi], src.vx[ci], src.vx[di])
-		dst.vy[i] = func(px, src.vy[ai], src.vy[bi], src.vy[ci], src.vy[di])
+		// dst.vy[i] = func(px, src.vy[ai], src.vy[bi], src.vy[ci], src.vy[di])
 	}
 }
 
@@ -364,7 +366,7 @@ function interv(dst, src, func) {
 		// dst.dat[i] = func(py, a, b, c, d)
 
 		dst.vx[i] = func(py, src.vx[ai], src.vx[bi], src.vx[ci], src.vx[di])
-		dst.vy[i] = func(py, src.vy[ai], src.vy[bi], src.vy[ci], src.vy[di])
+		// dst.vy[i] = func(py, src.vy[ai], src.vy[bi], src.vy[ci], src.vy[di])
 	}
 }
 

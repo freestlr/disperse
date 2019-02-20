@@ -42,18 +42,21 @@ var can1 = makeCanvas(s * i, s * i)
 function run() {
 	mt.init(seed)
 
-	generate(g1)
-	interh(g2, g1, filter)
-	// interv(g4, g1, filter)
-	interv(g3, g2, filter)
+	// generate(g1)
+	perf.call(generate, g1)
 
-	// draw(can0, g1.dat)
-	// draw(can1, g1)
-	// draw(can2, g2)
-	draw(can1, g3)
-	// draw(can4, g4)
+	// interh(g2, g1, filter)
+	perf.call(interh, g2, g1, filter)
+
+	// interv(g3, g2, filter)
+	perf.call(interv, g3, g2, filter)
+
+	// draw(can1, g3)
+	perf.call(draw, can1, g3)
 
 	backgroundCapture()
+
+	updateStats()
 }
 
 function rerun(set) {
@@ -64,6 +67,27 @@ function rerun(set) {
 
 
 
+var outStats = dom.div('out', document.body)
+f.copy(outStats.style, {
+	position: 'absolute',
+	right: '8px',
+	top: '8px',
+	padding: '4px 8px',
+	backgroundColor: 'rgba(0, 0, 0, 0.7)',
+	color: 'white',
+	font: '12px monospace',
+	whiteSpace: 'pre'
+})
+function updateStats() {
+	var fmt = ['%n:', 'last', '%l', 'avg', '%a', 'best', '%b', 'worst', '%w', 'cycles', '%c', 'time', '%t']
+
+	dom.text(outStats, f.tformat([
+		perf.format(fmt, 'generate'),
+		perf.format(fmt, 'interh'),
+		perf.format(fmt, 'interv'),
+		perf.format(fmt, 'draw'),
+	]))
+}
 
 var inputHeight = new Block.RangeInput({
 	eroot: document.body,

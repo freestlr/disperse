@@ -21,9 +21,10 @@ var filters = [
 
 var edgeRepeat = true
 var useComponent = 0
-var useNormal = true
+var drawNormal = true
 var normalHeight = -1.4
 var currentZ = 0
+var moveByZ = 0
 
 
 
@@ -43,6 +44,12 @@ var g4 = makeSet3(s * i, s * i, s * i)
 var can1 = makeCanvas(s * i, s * i)
 
 
+// var get3 = perf.wrap(get3)
+var generate = perf.wrap(generate)
+var inter = perf.wrap(inter)
+var draw = perf.wrap(draw)
+
+
 function run() {
 	perf.call(xrun)
 }
@@ -50,23 +57,19 @@ function run() {
 function xrun() {
 	mt.init(seed)
 
-	// generate(g1)
-	perf.call(generate, g1)
+	generate(g1)
 
 
 
-	perf.call(inter, g2, g1, 1, 0, 0, filter)
-	perf.call(inter, g3, g2, 0, 1, 0, filter)
-	perf.call(inter, g4, g3, 0, 0, 1, filter)
+	inter(g2, g1, 1, 0, 0, filter)
+	inter(g3, g2, 0, 1, 0, filter)
+	inter(g4, g3, 0, 0, 1, filter)
 
-	// draw(can1, g3)
-	drawSlice()
-
-	// updateStats()
+	needsRedraw = true
 }
 
 function drawSlice() {
-	perf.call(draw, can1, g4, currentZ)
+	draw(can1, g4, currentZ)
 
 	backgroundCapture()
 
@@ -84,7 +87,7 @@ function rerun(set) {
 var outStats = dom.div('out', document.body)
 f.copy(outStats.style, {
 	position: 'absolute',
-	right: '8px',
+	right: '0px',
 	top: '8px',
 	padding: '4px 8px',
 	backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -93,14 +96,7 @@ f.copy(outStats.style, {
 	whiteSpace: 'pre'
 })
 function updateStats() {
-	var fmt = ['%n:', 'last', '%l', 'avg', '%a', 'best', '%b', 'worst', '%w', 'cycles', '%c', 'time', '%t']
-
-	dom.text(outStats, f.tformat([
-		perf.format(fmt, 'xrun'),
-		perf.format(fmt, 'generate'),
-		perf.format(fmt, 'inter'),
-		perf.format(fmt, 'draw'),
-	]))
+	dom.text(outStats, perf.getall(['%n:', 'last', '%l', 'avg', '%a', 'best', '%b', 'worst', '%w', 'cycles', '%c', 'time', '%t']))
 }
 
 var inputHeight = new Block.RangeInput({
@@ -116,10 +112,11 @@ var inputHeight = new Block.RangeInput({
 
 inputHeight.events.on('change', function(v) {
 	normalHeight = v
-	drawSlice()
+	needsRedraw = true
 })
 
 new EventHandler(onKey).listen('keydown', window)
+new EventHandler(onKey).listen('keyup', window)
 
 
 
@@ -255,7 +252,7 @@ function draw(can, g, z) {
 			// var v = [vx, vy][useComponent]
 			var v = vx
 
-			if(useNormal) {
+			if(drawNormal) {
 				var nx = v[get3(x - 1, y, z, w, h, d)]
 				var px = v[get3(x + 1, y, z, w, h, d)]
 				var ny = v[get3(x, y - 1, z, w, h, d)]
@@ -276,7 +273,7 @@ function draw(can, g, z) {
 			}
 
 		} else {
-			if(useNormal) {
+			if(drawNormal) {
 				var pl = Math.min(1, cx * cx + cy * cy)
 				cz = Math.sqrt(1 - pl) * nh
 				var dl = 1 / Math.sqrt(cx * cx + cy * cy + cz * cz)
@@ -404,7 +401,24 @@ function onKey() {
 		filter = filters[kbd.key -1] || nearest
 		run()
 
+	} else if(!kbd.down) switch(kbd.key) {
+		case 'n':
+			moveByZ = 0
+		break
+
+		case 'p':
+			moveByZ = 0
+		break
+
 	} else switch(kbd.key) {
+		case 'n':
+			moveByZ = 1
+		break
+
+		case 'p':
+			moveByZ = -1
+		break
+
 		case '-':
 			backgroundResize(1/2)
 		break
@@ -429,22 +443,12 @@ function onKey() {
 
 		case 'x':
 			useComponent = (useComponent + 1) % 3
-			drawSlice()
+			needsRedraw = true
 		break
 
 		case 'z':
-			useNormal = !useNormal
-			drawSlice()
-		break
-
-		case 'n':
-			currentZ = (currentZ + 1) % (s * i)
-			drawSlice()
-		break
-
-		case 'p':
-			currentZ = (currentZ || (s * i)) - 1
-			drawSlice()
+			drawNormal = !drawNormal
+			needsRedraw = true
 		break
 	}
 }
@@ -456,6 +460,16 @@ function onKey() {
 function loop() {
 	requestAnimationFrame(loop)
 
-	currentZ = (currentZ || (s * i)) - 1
-	drawSlice()
+	if(moveByZ) {
+		var ring = i * s
+		currentZ = (((currentZ + moveByZ) % ring) + ring) % ring
+
+		needsRedraw = true
+	}
+
+	if(needsRedraw) {
+		needsRedraw = false
+
+		drawSlice()
+	}
 }

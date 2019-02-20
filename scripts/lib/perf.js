@@ -75,6 +75,15 @@ var perf = {
 		if(!noFlush) perf.flushLocal(name)
 	},
 
+	getlist: function(list, format) {
+		// return f.tformat(list).map(function(name) { return perf.format(format , name) })
+		return f.tformat(list.map(name => perf.format(format, name)))
+	},
+
+	getall: function(format) {
+		return perf.getlist(Object.keys(perf.values), format)
+	},
+
 	format: function(fmt, name) {
 		var v = perf.values[name]
 		if(!v) return console.log('perf: no', name)

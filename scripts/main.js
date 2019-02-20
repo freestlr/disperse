@@ -46,7 +46,7 @@ var can1 = makeCanvas(s * i, s * i)
 
 // var get3 = perf.wrap(get3)
 var generate = perf.wrap(generate)
-var inter = perf.wrap(inter)
+// var inter = perf.wrap(inter)
 var draw = perf.wrap(draw)
 
 
@@ -229,7 +229,9 @@ function get2(x, y, w, h) {
 }
 
 function get3(x, y, z, w, h, d) {
+	// perf.start('get3')
 	return wrap(x, w) + wrap(y, h) * w + wrap(z, d) * w * h
+		// perf.end('get3')][0]
 }
 
 function draw(can, g, z) {
@@ -325,6 +327,9 @@ function inter(dst, src, dx, dy, dz, func) {
 	var dd = dst.d
 	var dv = dst.vx
 
+	var name = 'inter'+ dw +'x'+ dh +'x'+ dd
+	perf.start(name)
+
 	var kw = dst.w / src.w
 	var kh = dst.h / src.h
 	var kd = dst.d / src.d
@@ -350,6 +355,8 @@ function inter(dst, src, dx, dy, dz, func) {
 
 		dv[i] = func(px * dx + py * dy + pz * dz, a, b, c, d)
 	}
+
+	perf.end(name)
 }
 
 

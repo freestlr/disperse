@@ -53,11 +53,7 @@ function xrun() {
 	// generate(g1)
 	perf.call(generate, g1)
 
-	// // interh(g2, g1, filter)
-	// perf.call(interh, g2, g1, filter)
 
-	// // interv(g3, g2, filter)
-	// perf.call(interv, g3, g2, filter)
 
 	perf.call(inter, g2, g1, 1, 0, 0, filter)
 	perf.call(inter, g3, g2, 0, 1, 0, filter)
@@ -108,7 +104,7 @@ function updateStats() {
 }
 
 var inputHeight = new Block.RangeInput({
-	eroot: document.body,
+	// eroot: document.body,
 	min: -2,
 	max: 0,
 	// position: 0.5,
@@ -123,12 +119,10 @@ inputHeight.events.on('change', function(v) {
 	drawSlice()
 })
 
-new EventHandler(onResize).listen('resize', window)
 new EventHandler(onKey).listen('keydown', window)
 
 
 
-onResize()
 backgroundCapture(null)
 backgroundResize(1)
 run()
@@ -356,84 +350,7 @@ function inter(dst, src, dx, dy, dz, func) {
 	}
 }
 
-function interh(dst, src, func) {
-	var sw = dst.w / src.w
-	var sh = dst.h / src.h
-	var svx = src.vx
-	// var svy = src.vy
-	var dvx = dst.vx
-	// var dvy = dst.vy
 
-	for(var y = 0; y < dst.h; y++)
-	for(var x = 0; x < dst.w; x++) {
-		var i = y * dst.w + x
-
-		var x1 = x / sw |0
-		var y1 = y / sh |0
-
-		var px = (x - x1 * sw) / sw
-
-		// var xa = wrap(x1 - 1, src.w)
-		// var xb = x1
-		// var xc = wrap(x1 + 1, src.w)
-		// var xd = wrap(x1 + 2, src.w)
-
-		// var ai = y1 * src.w + xa
-		// var bi = y1 * src.w + xb
-		// var ci = y1 * src.w + xc
-		// var di = y1 * src.w + xd
-
-		var ai = get2(x1 -1, y1, src.w, src.h)
-		var bi = get2(x1 -0, y1, src.w, src.h)
-		var ci = get2(x1 +1, y1, src.w, src.h)
-		var di = get2(x1 +2, y1, src.w, src.h)
-
-		// var a = src.dat[y1 * src.w + xa]
-		// var b = src.dat[y1 * src.w + xb]
-		// var c = src.dat[y1 * src.w + xc]
-		// var d = src.dat[y1 * src.w + xd]
-
-		// dst.dat[i] = func(px, a, b, c, d)
-
-		dst.vx[i] = func(px, src.vx[ai], src.vx[bi], src.vx[ci], src.vx[di])
-		// dst.vy[i] = func(px, src.vy[ai], src.vy[bi], src.vy[ci], src.vy[di])
-	}
-}
-
-function interv(dst, src, func) {
-	var sw = dst.w / src.w
-	var sh = dst.h / src.h
-
-	for(var y = 0; y < dst.h; y++)
-	for(var x = 0; x < dst.w; x++) {
-		var i = y * dst.w + x
-
-		var x1 = x / sw |0
-		var y1 = y / sh |0
-
-		var py = y / sh - y1
-
-		var ya = wrap(y1 - 1, src.h)
-		var yb = y1
-		var yc = wrap(y1 + 1, src.h)
-		var yd = wrap(y1 + 2, src.h)
-
-		var ai = ya * src.w + x1
-		var bi = yb * src.w + x1
-		var ci = yc * src.w + x1
-		var di = yd * src.w + x1
-
-		// var a = src.dat[ya * src.w + x1]
-		// var b = src.dat[yb * src.w + x1]
-		// var c = src.dat[yc * src.w + x1]
-		// var d = src.dat[yd * src.w + x1]
-
-		// dst.dat[i] = func(py, a, b, c, d)
-
-		dst.vx[i] = func(py, src.vx[ai], src.vx[bi], src.vx[ci], src.vx[di])
-		// dst.vy[i] = func(py, src.vy[ai], src.vy[bi], src.vy[ci], src.vy[di])
-	}
-}
 
 function nearest(x, a, b, c, d) {
 	return x < 0.5 ? b : c
@@ -482,65 +399,56 @@ function vvcross(a, b) {
 		a[0] * b[1] - a[1] * b[0]]
 }
 
-function onKey(e) {
-	var cod = e.keyCode
-	var key = String.fromCharCode(cod).toLowerCase()
-	if(cod >= 49 && cod <= 57) {
-		filter = filters[cod - 49] || nearest
+function onKey() {
+	if(/\d/.test(kbd.key)) {
+		filter = filters[kbd.key -1] || nearest
 		run()
 
-	} else switch(cod) {
-		case 189: // -
+	} else switch(kbd.key) {
+		case '-':
 			backgroundResize(1/2)
 		break
 
-		case 187: // =
+		case '=':
 			backgroundResize(2)
 		break
 
-		case 13: // enter
+		case 'ENTER':
 			for(var name in perf.values) perf.flushLocal(name)
 			updateStats()
 		break
 
-		case 32: // space
+		case 'SPACE':
 			rerun()
 		break
 
-		case 69: // e
+		case 'e':
 			edgeRepeat = !edgeRepeat
 			run()
 		break
 
-		case 88: // x
+		case 'x':
 			useComponent = (useComponent + 1) % 3
-			run()
+			drawSlice()
 		break
 
-		case 90: // z
+		case 'z':
 			useNormal = !useNormal
-			run()
+			drawSlice()
 		break
 
-		case 78: // n
+		case 'n':
 			currentZ = (currentZ + 1) % (s * i)
 			drawSlice()
 		break
 
-		case 80: // p
+		case 'p':
 			currentZ = (currentZ || (s * i)) - 1
 			drawSlice()
 		break
-
-		default:
-			console.log('key', e.keyCode, key)
 	}
 }
 
-function onResize() {
-	var w = window.innerWidth
-	,   h = window.innerHeight
-}
 
 
 

@@ -8,6 +8,10 @@ var perf = {
 			:  new Date().getTime()
 	},
 
+	round: function(v) {
+		return perf.precision === 'a' ? f.cround(v) : f.mround(v, perf.precision)
+	},
+
 	start: function(name) {
 		var v = perf.values[name]
 		if(!v) {
@@ -64,19 +68,64 @@ var perf = {
 		var v = perf.values[name]
 		if(!v) return console.log('perf: no', name)
 
-		console.log('perf', name +':',
-			f.mround(v.localTime / v.localCycles, perf.precision), 'avg,',
-			f.mround(v.localBest, perf.precision), 'best,',
-			f.mround(v.localWorst, perf.precision), 'worst,',
-			f.mround(v.localTime, perf.precision), 'ms,',
-			v.localCycles, 'cycles,',
-			v.totalCycles, 'total cycles,',
-			f.mround(v.totalTime / v.totalCycles, perf.precision), 'total avg')
+		console.log(perf.format('perf %n: %a avg, %b best, %w worst, %t ms, %c cycles, %C total cycles, %A total avg', name))
 
 		if(!noFlush) perf.flushLocal(name)
 	},
 
+	format: function(fmt, name) {
+		var v = perf.values[name]
+		if(!v) return console.log('perf: no', name)
+
+		var map = {
+			'%n': name,
+
+			'%T': v.totalTime,
+			'%C': v.totalCycles,
+			'%B': perf.round(v.totalBest),
+			'%W': perf.round(v.totalWorst),
+			'%A': perf.round(v.totalTime / v.totalCycles),
+
+			'%t': v.localTime,
+			'%c': v.localCycles,
+			'%b': perf.round(v.localBest),
+			'%w': perf.round(v.localWorst),
+			'%a': perf.round(v.localTime / v.localCycles),
+
+			'%l': perf.round(v.lastTime)
+		}
+		function extract(m) { return m in map ? map[m] : m }
+		function replace(m) { return m in map ? map[m] : m.replace(/%./g, extract) }
+
+		if(typeof fmt === 'string') return replace(fmt)
+		if(fmt instanceof Array) return fmt.map(replace)
+	},
+
 	monitor: function(name, interval) {
 		setInterval(perf.show, interval || 1000, name)
+	},
+
+	call: function(func) {
+		var name = func.name
+		var args = []
+
+		for(var i = 1; i < arguments.length; i++) args.push(arguments[i])
+
+		perf.start(name)
+		var ret = func.apply(null, args)
+		perf.end(name)
+		return ret
+	},
+
+	wrap: function(func, name) {
+		if(name == null) {
+			name = func.name
+		}
+		return function() {
+			perf.start(name)
+			var ret = func.apply(this, arguments)
+			perf.end(name)
+			return ret
+		}
 	}
 }

@@ -3,10 +3,7 @@ var seed = 543334
 
 
 
-var s = 8
-var i = 32
 
-var bgSize = 256
 
 var filter = cubic
 var filters = [
@@ -15,10 +12,10 @@ var filters = [
 	smoothstep,
 	smootherstep,
 	cubic,
-	tangent
 ]
 
-var currentBackground = null
+var backgroundSize = 256
+var backgroundCanvas = null
 var edgeRepeat = true
 var useComponent = 0
 var drawNormal = true
@@ -28,18 +25,47 @@ var moveByZ = 0
 
 
 
+/**
+ *
+ * z axis is done as ring buffer
+ * given 8 keypoints by 4 interpolants
+ *
+ * 0   1   2   3   4   5   6   7
+ * |---|---|---|---|---|---|---|---
+ *         a---b-x-c---d   -   cubic spline
+ *
+ *
+ *
+ * modification affects
+ *
+ * |---|---|---|---|---|---|---|---
+ * +---+---+---m---+---+---+
+ *
+ * |---|---|---|---|---|---|---|---
+ *     +---+---+---m---+---+---+
+ *
+ * |---|---|---|---|---|---|---|---
+ * +       +---+---+---m---+---+---
+ *
+ * |---|---|---|---|---|---|---|---
+ * +---+       +---+---+---m---+---
+ *
+ *
+ *
+ */
+
+
 var mt = new MersenneTwister
 
 
+var s = 4
+var i = 32
 
-// var g1 = makeSet2(s, s)
-// var g2 = makeSet2(s * i, s)
-// var g3 = makeSet2(s * i, s * i)
 
 var g1 = makeSet3(s, s, s)
 var g2 = makeSet3(s * i, s, s)
 var g3 = makeSet3(s * i, s * i, s)
-var g4 = makeSet3(s * i, s * i, s * i)
+var g4 = makeSet3(s * i, s * i, s * i * 4)
 
 var can1 = makeCanvas(s * i, s * i)
 
@@ -61,9 +87,9 @@ function xrun() {
 
 
 
-	inter(g2, g1, 1, 0, 0, filter)
-	inter(g3, g2, 0, 1, 0, filter)
-	inter(g4, g3, 0, 0, 1, filter)
+	inter(g2, g1, filter, 1, 0, 0)
+	inter(g3, g2, filter, 0, 1, 0)
+	inter(g4, g3, filter, 0, 0, 1)
 
 	needsRedraw = true
 }
@@ -128,15 +154,6 @@ loop()
 
 
 
-function makeSet2(w, h) {
-	return {
-		w: w,
-		h: h,
-		d: 1,
-		vx: new Float32Array(w * h),
-		// vy: new Float32Array(w * h),
-	}
-}
 function makeSet3(w, h, d) {
 	return {
 		w: w,
@@ -150,30 +167,24 @@ function makeCanvas(w, h, options) {
 	var opt = options || {}
 	var cvs = dom.elem('canvas', null, document.body)
 	var ctx = cvs.getContext('2d')
-	// var dat = new Float32Array(w * h)
 	var pix = ctx.createImageData(w, h)
 
-	// var vx = new Float32Array(w * h)
-	// var vy = new Float32Array(w * h)
 
 	cvs.width = w
 	cvs.height = h
 
 
 	f.copy(cvs.style, {
-		width:  /* w * 32 + */'256px',
-		height: /* h * 32 + */'256px',
+		width:  '256px',
+		height: '256px',
 		imageRendering: opt.imageRendering || 'pixelated',
 	})
 
 	var set = {
 		w: w,
 		h: h,
-		// vx: vx,
-		// vy: vy,
 		cvs: cvs,
 		ctx: ctx,
-		// dat: dat,
 		pix: pix,
 	}
 
@@ -197,12 +208,12 @@ function onCanvasClick(set) {
 }
 
 function backgroundCapture(set) {
-	currentBackground = set
+	backgroundCanvas = set
 	backgroundUpdate()
 }
 
 function backgroundUpdate(set) {
-	var bg = currentBackground
+	var bg = backgroundCanvas
 	f.copy(document.body.style, {
 		'background-image': bg ? 'url('+ bg.cvs.toDataURL() +')' : '',
 		'background-position': '0 0',
@@ -211,10 +222,10 @@ function backgroundUpdate(set) {
 }
 
 function backgroundResize(scale) {
-	bgSize *= scale
+	var bs = backgroundSize *= scale
 
 	f.copy(document.body.style, {
-		'background-size': bgSize +'px '+ bgSize +'px',
+		'background-size': bs +'px '+ bs +'px',
 	})
 }
 
@@ -315,7 +326,7 @@ function generate(g) {
 }
 
 
-function inter(dst, src, dx, dy, dz, func) {
+function inter(dst, src, func, dx, dy, dz, sx, sy, sz, cx, cy, cz) {
 	var sw = src.w
 	var sh = src.h
 	var sd = src.d
@@ -326,7 +337,15 @@ function inter(dst, src, dx, dy, dz, func) {
 	var dd = dst.d
 	var dv = dst.vx
 
-	var name = 'inter'+ dw +'x'+ dh +'x'+ dd
+	if(sx == null) sx = 0
+	if(sy == null) sy = 0
+	if(sz == null) sz = 0
+
+	if(cx == null) cx = dw - sx
+	if(cy == null) cy = dh - sx
+	if(cz == null) cz = dd - sx
+
+	var name = 'inter'+ cx +'x'+ cy +'x'+ cz
 	perf.start(name)
 
 	var kw = dst.w / src.w
@@ -334,9 +353,13 @@ function inter(dst, src, dx, dy, dz, func) {
 	var kd = dst.d / src.d
 
 
-	for(var z = 0; z < dd; z++)
-	for(var y = 0; y < dh; y++)
-	for(var x = 0; x < dw; x++) {
+	var ex = sx + cx
+	var ey = sy + cy
+	var ez = sz + cz
+
+	for(var z = sz; z < ez; z++)
+	for(var y = sy; y < ey; y++)
+	for(var x = sx; x < ex; x++) {
 		var i = z * dw * dh + y * dw + x
 
 		var x1 = x / kw |0
@@ -382,14 +405,16 @@ function cubic(x, a, b, c, d) {
 	return b + 0.5 * x*(c - a + x*(2*a - 5*b + 4*c - d + x*(3*(b - c) + d - a)))
 }
 
-function tangent(x, a, b, c, d) {
-	var kb = b *2 -1
-	var kc = c *2 -1
-	var t = x - 0.5
-	var tb = t * kb
-	var tc = (t - 1) * kc
-	return t * (tc - tb) + tb + 0.5
+function xsmoothstep(t) {
+	return t * t * (3 - 2 * t)
 }
+function xsmootherstep(t, a, b, c, d) {
+	return t * t * t * (t * (t * 6 - 15) + 10)
+}
+function xtan(t) {
+	return Math.tan(Math.PI * (t - 1/2) * 0.844042) / 8 + 1/2
+}
+
 
 function vlen(a) {
 	return Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2])
@@ -472,7 +497,7 @@ function loop() {
 	requestAnimationFrame(loop)
 
 	if(moveByZ) {
-		var ring = i * s
+		var ring = g4.d
 		currentZ = (((currentZ + moveByZ) % ring) + ring) % ring
 
 		needsRedraw = true

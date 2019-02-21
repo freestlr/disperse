@@ -5,13 +5,24 @@ var seed = 543334
 
 
 
-var filter = cubic
+var filter = filterCubic
 var filters = [
-	nearest,
-	linear,
-	smoothstep,
-	smootherstep,
-	cubic,
+	filterNearest,
+	filterLinear,
+	filterQuardratic,
+	filterCubic,
+]
+
+var easing = TWEEN.EasingEnum.LinearNone
+var easings = [
+	TWEEN.EasingEnum.LinearNone,
+	TWEEN.EasingEnum.QuadraticInOut,
+	TWEEN.EasingEnum.CubicInOut,
+	easingSmoothstep,
+	easingSmootherstep,
+	easingTangent1,
+	easingTangent2,
+	easingTangent4,
 ]
 
 var backgroundSize = 256
@@ -87,9 +98,9 @@ function xrun() {
 
 
 
-	inter(g2, g1, filter, 1, 0, 0)
-	inter(g3, g2, filter, 0, 1, 0)
-	inter(g4, g3, filter, 0, 0, 1)
+	inter(g2, g1, easing, filter, 1, 0, 0)
+	inter(g3, g2, easing, filter, 0, 1, 0)
+	inter(g4, g3, easingTangent1, filter, 0, 0, 1)
 
 	needsRedraw = true
 }
@@ -122,7 +133,7 @@ f.copy(outStats.style, {
 	whiteSpace: 'pre'
 })
 function updateStats() {
-	dom.text(outStats, perf.getall(['%n:', 'last', '%l', 'avg', '%a', 'best', '%b', 'worst', '%w', 'cycles', '%c', 'time', '%t']))
+	dom.text(outStats, perf.getall(['last', '%l', 'avg', '%a', 'best', '%b', 'worst', '%w', 'cycles', '%c', 'time', '%t', '| %n']))
 }
 
 var inputHeight = new Block.RangeInput({
@@ -326,7 +337,7 @@ function generate(g) {
 }
 
 
-function inter(dst, src, func, dx, dy, dz, sx, sy, sz, cx, cy, cz) {
+function inter(dst, src, ease, func, dx, dy, dz, sx, sy, sz, cx, cy, cz) {
 	var sw = src.w
 	var sh = src.h
 	var sd = src.d
@@ -375,7 +386,7 @@ function inter(dst, src, func, dx, dy, dz, sx, sy, sz, cx, cy, cz) {
 		var c = sv[get3(x1 + 1 * dx, y1 + 1 * dy, z1 + 1 * dz, sw, sh, sd)]
 		var d = sv[get3(x1 + 2 * dx, y1 + 2 * dy, z1 + 2 * dz, sw, sh, sd)]
 
-		dv[i] = func(px * dx + py * dy + pz * dz, a, b, c, d)
+		dv[i] = func(ease(px * dx + py * dy + pz * dz), a, b, c, d)
 	}
 
 	perf.end(name)
@@ -383,35 +394,36 @@ function inter(dst, src, func, dx, dy, dz, sx, sy, sz, cx, cy, cz) {
 
 
 
-function nearest(x, a, b, c, d) {
+function filterNearest(x, a, b, c, d) {
 	return x < 0.5 ? b : c
 }
 
-function linear(x, a, b, c, d) {
+function filterLinear(x, a, b, c, d) {
 	return (c - b) * x + b
 }
 
-function smoothstep(x, a, b, c, d) {
-	var t = x * x * (3 - 2 * x)
-	return b + (c - b) * t
+function filterQuardratic(x, a, b, c, d) {
+	return b + 0.5 * x*(-3*b + 4*c - d + x*(b - 2*c + d))
 }
 
-function smootherstep(x, a, b, c, d) {
-	var t = x * x * x * (x * (x * 6 - 15) + 10)
-	return b + (c - b) * t
-}
-
-function cubic(x, a, b, c, d) {
+function filterCubic(x, a, b, c, d) {
 	return b + 0.5 * x*(c - a + x*(2*a - 5*b + 4*c - d + x*(3*(b - c) + d - a)))
 }
 
-function xsmoothstep(t) {
+
+function easingSmoothstep(t) {
 	return t * t * (3 - 2 * t)
 }
-function xsmootherstep(t, a, b, c, d) {
+function easingSmootherstep(t, a, b, c, d) {
 	return t * t * t * (t * (t * 6 - 15) + 10)
 }
-function xtan(t) {
+function easingTangent1(t) {
+	return Math.tan(Math.PI * (t - 1/2) * 0.5) / 2 + 1/2
+}
+function easingTangent2(t) {
+	return Math.tan(Math.PI * (t - 1/2) * 0.7048327647) / 4 + 1/2
+}
+function easingTangent4(t) {
 	return Math.tan(Math.PI * (t - 1/2) * 0.844042) / 8 + 1/2
 }
 
@@ -434,7 +446,12 @@ function vvcross(a, b) {
 
 function onKey() {
 	if(/\d/.test(kbd.key)) {
-		filter = filters[kbd.key -1] || nearest
+
+		if(kbd.state.SHIFT) {
+			easing = easings[kbd.key -1] || TWEEN.EasingEnum.LinearNone
+		} else {
+			filter = filters[kbd.key -1] || filterNearest
+		}
 		run()
 
 	} else if(!kbd.down) switch(kbd.key) {

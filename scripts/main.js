@@ -12,7 +12,7 @@ var filter = filterCubic
 var filters = [
 	filterNearest,
 	filterLinear,
-	filterQuardratic,
+	filterQuadratic,
 	filterCubic,
 	filterCubicManual,
 	filterCubicManualVerbose,
@@ -406,7 +406,7 @@ function filterLinear(x, a, b, c, d) {
 	return (c - b) * x + b
 }
 
-function filterQuardratic(x, a, b, c, d) {
+function filterQuadratic(x, a, b, c, d) {
 	return b + 0.5 * x*(-3*b + 4*c - d + x*(b - 2*c + d))
 
 	var x0 = 0

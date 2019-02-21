@@ -42,7 +42,8 @@ var TWEEN = {
 	},
 
 	update: function(time) {
-		TWEEN.time = isNaN(time) ? window.performance.now() : time
+		var t = +time
+		TWEEN.time = t === t ? t : window.performance.now()
 
 		var length = TWEEN.tweens.length
 		if(!length) return false
@@ -61,9 +62,6 @@ var TWEEN = {
 	}
 }
 
-TWEEN.loop()
-
-
 TWEEN.Tween = function(object) {
 	this.source = {}
 	this.target = {}
@@ -75,21 +73,21 @@ TWEEN.Tween = function(object) {
 	this.repeatTimes = 0
 	this.enableYoyo = false
 	this.reversed = false
+	this.waitForStart = true
 	this.easingFunction = TWEEN.Easing.Linear.None
 	this.interpolationFunction = TWEEN.Interpolation.Linear
 
 	this.chainedTweens = []
 	this.synchedTweens = []
 
+	this.onBeforeStartCallback = null
+	this.onBeforeStartScope = null
+	this.onBeforeStartData = null
+
 	this.onStartCallbackFired = false
 	this.onStartCallback = null
 	this.onStartScope = null
 	this.onStartData = null
-
-	this.onHalfwayCallbackFired = false
-	this.onHalfwayCallback = null
-	this.onHalfwayScope = null
-	this.onHalfwayData = null
 
 	this.onUpdateCallback = null
 	this.onUpdateScope = null
@@ -114,6 +112,9 @@ TWEEN.Tween = function(object) {
 
 TWEEN.Tween.prototype = {
 
+	clock: TWEEN,
+	realtime: false,
+
 	copy: function(tween) {
 		this.durationTime          = tween.durationTime
 		this.delayTime             = tween.delayTime
@@ -128,12 +129,23 @@ TWEEN.Tween.prototype = {
 	},
 
 	setSource: function(object) {
-		this.source = object
+		if(object != null) {
+			this.source = object
+		}
 		return this
 	},
 
 	setTarget: function(object) {
-		this.target = object
+		if(object != null) {
+			this.target = object
+		}
+		return this
+	},
+
+	setClock: function(object) {
+		if(object != null) {
+			this.clock = object
+		}
 		return this
 	},
 
@@ -143,8 +155,8 @@ TWEEN.Tween.prototype = {
 	},
 
 	from: function(object) {
-		for(var name in object) {
-			this.source[name] = object[name]
+		for(var name in this.source) {
+			if(name in object) this.source[name] = object[name]
 		}
 		return this
 	},
@@ -195,17 +207,17 @@ TWEEN.Tween.prototype = {
 
 	},
 
+	onBeforeStart: function(callback, scope, data) {
+		this.onBeforeStartCallback = callback
+		this.onBeforeStartScope = scope
+		this.onBeforeStartData = data
+		return this
+	},
+
 	onStart: function(callback, scope, data) {
 		this.onStartCallback = callback
 		this.onStartScope = scope
 		this.onStartData = data
-		return this
-	},
-
-	onHalfway: function(callback, scope, data) {
-		this.onHalfwayCallback = callback
-		this.onHalfwayScope = scope
-		this.onHalfwayData = data
 		return this
 	},
 
@@ -234,7 +246,7 @@ TWEEN.Tween.prototype = {
 	stop: function() {
 		this.playing = false
 
-		TWEEN.remove(this)
+		this.clock.remove(this)
 
 		if(this.debug) console.trace(this.debug, 'stop')
 
@@ -315,40 +327,46 @@ TWEEN.Tween.prototype = {
 	},
 
 	start: function(time) {
-		TWEEN.add(this)
+		var t = +time
+		if(t !== t) t = this.realtime && this.clock.realtime || this.clock.time
 
+		this.startTime = t + this.delayTime
 		this.onStartCallbackFired = false
-		this.onHalfwayCallbackFired = false
 		this.ended = false
 		this.elapsed = 0
 		this.progress = 0
 		this.prodelta = 0
-
-		this.startTime = isNaN(time) ? TWEEN.time : +time
-		this.startTime += this.delayTime
 
 		this.updateSource()
 		this.updateTarget()
 
 		this.delta = {}
 
+		var changes = false
 		for(var property in this.valuesTarget) {
 			var valueSource = this.valuesSource[property]
 			,   valueTarget = this.valuesTarget[property]
 
-			// if(valueSource === valueTarget) {
-			// 	delete this.valuesSource[property]
-			// 	delete this.valuesTarget[property]
-			// }
+			if(valueSource !== valueTarget) {
+				changes = true
+			}
 
 			if(valueTarget instanceof TWEEN.Tween) {
-				valueTarget.start(time)
-				TWEEN.remove(valueTarget)
+				valueTarget.setClock(this.clock).start(t)
+				this.clock.remove(valueTarget)
 				this.delta[property] = valueTarget.delta
 
 			} else {
 				this.delta[property] = 0
 			}
+		}
+
+		if(!changes) return this
+
+		this.clock.add(this)
+
+		if(this.onBeforeStartCallback !== null) {
+			this.onBeforeStartCallback.call(this.onBeforeStartScope, this.source, this.target, this.onBeforeStartData)
 		}
 
 		if(this.debug) console.trace(this.debug, 'start',
@@ -367,7 +385,7 @@ TWEEN.Tween.prototype = {
 			return
 		}
 
-		if(time < this.startTime) {
+		if(time < this.startTime && this.waitForStart) {
 			this.updating = true
 			return
 		}
@@ -394,23 +412,9 @@ TWEEN.Tween.prototype = {
 
 		this.updating = this.elapsed < 1 || this.repeatTimes > 0
 
-
-		if(this.debug) console.log(this.debug, 'update',
-			'\n\tvalues:', this.source,
-			'\n\tdetta:', this.delta)
-
-		if(this.onHalfwayCallbackFired === false && this.progress > 0.5) {
-			this.onHalfwayCallbackFired = true
-
-			if(this.onHalfwayCallback !== null) {
-				this.onHalfwayCallback.call(this.onHalfwayScope, this.onHalfwayData)
-			}
+		if(this.elapsed === 0 && !this.waitForStart) {
+			this.updating = false
 		}
-
-		if(this.onUpdateCallback !== null) {
-			this.onUpdateCallback.call(this.onUpdateScope, this.progress, this.source)
-		}
-
 
 		if(this.elapsed === 1) {
 
@@ -482,6 +486,14 @@ TWEEN.Tween.prototype = {
 
 			this.delta[property] = valueCurrent - this.source[property]
 			this.source[property] = valueCurrent
+		}
+
+		if(this.debug) console.log(this.debug, 'update',
+			'\n\tvalues:', this.source,
+			'\n\tdetta:', this.delta)
+
+		if(this.onUpdateCallback !== null) {
+			this.onUpdateCallback.call(this.onUpdateScope, this.progress, this.source, this.delta)
 		}
 	}
 }
@@ -835,6 +847,40 @@ TWEEN.Easing = {
 	}
 
 };
+
+TWEEN.EasingEnum = {
+	'LinearNone'       : TWEEN.Easing.Linear.None,
+	'QuadraticIn'      : TWEEN.Easing.Quadratic.In,
+	'QuadraticOut'     : TWEEN.Easing.Quadratic.Out,
+	'QuadraticInOut'   : TWEEN.Easing.Quadratic.InOut,
+	'CubicIn'          : TWEEN.Easing.Cubic.In,
+	'CubicOut'         : TWEEN.Easing.Cubic.Out,
+	'CubicInOut'       : TWEEN.Easing.Cubic.InOut,
+	'QuarticIn'        : TWEEN.Easing.Quartic.In,
+	'QuarticOut'       : TWEEN.Easing.Quartic.Out,
+	'QuarticInOut'     : TWEEN.Easing.Quartic.InOut,
+	'QuinticIn'        : TWEEN.Easing.Quintic.In,
+	'QuinticOut'       : TWEEN.Easing.Quintic.Out,
+	'QuinticInOut'     : TWEEN.Easing.Quintic.InOut,
+	'SinusoidalIn'     : TWEEN.Easing.Sinusoidal.In,
+	'SinusoidalOut'    : TWEEN.Easing.Sinusoidal.Out,
+	'SinusoidalInOut'  : TWEEN.Easing.Sinusoidal.InOut,
+	'ExponentialIn'    : TWEEN.Easing.Exponential.In,
+	'ExponentialOut'   : TWEEN.Easing.Exponential.Out,
+	'ExponentialInOut' : TWEEN.Easing.Exponential.InOut,
+	'CircularIn'       : TWEEN.Easing.Circular.In,
+	'CircularOut'      : TWEEN.Easing.Circular.Out,
+	'CircularInOut'    : TWEEN.Easing.Circular.InOut,
+	'ElasticIn'        : TWEEN.Easing.Elastic.In,
+	'ElasticOut'       : TWEEN.Easing.Elastic.Out,
+	'ElasticInOut'     : TWEEN.Easing.Elastic.InOut,
+	'BackIn'           : TWEEN.Easing.Back.In,
+	'BackOut'          : TWEEN.Easing.Back.Out,
+	'BackInOut'        : TWEEN.Easing.Back.InOut,
+	'BounceIn'         : TWEEN.Easing.Bounce.In,
+	'BounceOut'        : TWEEN.Easing.Bounce.Out,
+	'BounceInOut'      : TWEEN.Easing.Bounce.InOut,
+}
 
 TWEEN.Interpolation = {
 

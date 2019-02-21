@@ -2,6 +2,9 @@ var seed = 543334
 
 
 
+var pb = 8
+var pi = 8
+
 
 
 
@@ -11,6 +14,9 @@ var filters = [
 	filterLinear,
 	filterQuardratic,
 	filterCubic,
+	filterCubicManual,
+	filterCubicManualVerbose,
+	filterCubicForward,
 ]
 
 var easing = TWEEN.EasingEnum.LinearNone
@@ -25,7 +31,8 @@ var easings = [
 	easingTangent4,
 ]
 
-var backgroundSize = 256
+var backgroundSize = pb * pi
+var backgroundScale = 1
 var backgroundCanvas = null
 var edgeRepeat = true
 var useComponent = 0
@@ -69,16 +76,14 @@ var moveByZ = 0
 var mt = new MersenneTwister
 
 
-var s = 4
-var i = 32
 
 
-var g1 = makeSet3(s, s, s)
-var g2 = makeSet3(s * i, s, s)
-var g3 = makeSet3(s * i, s * i, s)
-var g4 = makeSet3(s * i, s * i, s * i * 4)
+var g1 = makeSet3(pb, pb, pb)
+var g2 = makeSet3(pb * pi, pb, pb)
+var g3 = makeSet3(pb * pi, pb * pi, pb)
+var g4 = makeSet3(pb * pi, pb * pi, pb * pi * 8)
 
-var can1 = makeCanvas(s * i, s * i)
+var can1 = makeCanvas(pb * pi, pb * pi)
 
 
 // var get3 = perf.wrap(get3)
@@ -100,7 +105,7 @@ function xrun() {
 
 	inter(g2, g1, easing, filter, 1, 0, 0)
 	inter(g3, g2, easing, filter, 0, 1, 0)
-	inter(g4, g3, easingTangent1, filter, 0, 0, 1)
+	inter(g4, g3, easing, filter, 0, 0, 1)
 
 	needsRedraw = true
 }
@@ -186,8 +191,6 @@ function makeCanvas(w, h, options) {
 
 
 	f.copy(cvs.style, {
-		width:  '256px',
-		height: '256px',
 		imageRendering: opt.imageRendering || 'pixelated',
 	})
 
@@ -199,27 +202,19 @@ function makeCanvas(w, h, options) {
 		pix: pix,
 	}
 
-	new EventHandler(onCanvasEnter, null, set).listen('mouseenter', cvs)
-	new EventHandler(onCanvasLeave, null, set).listen('mouseleave', cvs)
-	new EventHandler(onCanvasClick, null, set).listen('click', cvs)
-
 	return set
 }
 
-function onCanvasEnter(set) {
-	backgroundCapture(set)
-}
-
-function onCanvasLeave(set) {
-	backgroundCapture(null)
-}
-
-function onCanvasClick(set) {
-	rerun()
-}
 
 function backgroundCapture(set) {
+	var prev = backgroundCanvas
+	if(prev) {
+		prev.cvs.style.display = ''
+	}
 	backgroundCanvas = set
+	if(set) {
+		set.cvs.style.display = 'none'
+	}
 	backgroundUpdate()
 }
 
@@ -227,13 +222,21 @@ function backgroundUpdate(set) {
 	var bg = backgroundCanvas
 	f.copy(document.body.style, {
 		'background-image': bg ? 'url('+ bg.cvs.toDataURL() +')' : '',
-		'background-position': '0 0',
+		'background-position': 'center center',
 		'background-color': 'white',
 	})
 }
 
 function backgroundResize(scale) {
-	var bs = backgroundSize *= scale
+	var bk = backgroundScale *= scale
+	var bs = backgroundSize * bk
+
+	var can = can1
+
+	f.copy(can.cvs.style, {
+		width:  can.w * bk +'px',
+		height: can.h * bk +'px',
+	})
 
 	f.copy(document.body.style, {
 		'background-size': bs +'px '+ bs +'px',
@@ -385,8 +388,9 @@ function inter(dst, src, ease, func, dx, dy, dz, sx, sy, sz, cx, cy, cz) {
 		var b = sv[get3(x1 - 0 * dx, y1 - 0 * dy, z1 - 0 * dz, sw, sh, sd)]
 		var c = sv[get3(x1 + 1 * dx, y1 + 1 * dy, z1 + 1 * dz, sw, sh, sd)]
 		var d = sv[get3(x1 + 2 * dx, y1 + 2 * dy, z1 + 2 * dz, sw, sh, sd)]
+		var e = sv[get3(x1 + 3 * dx, y1 + 3 * dy, z1 + 3 * dz, sw, sh, sd)]
 
-		dv[i] = func(ease(px * dx + py * dy + pz * dz), a, b, c, d)
+		dv[i] = func(ease(px * dx + py * dy + pz * dz), a, b, c, d, e)
 	}
 
 	perf.end(name)
@@ -404,11 +408,53 @@ function filterLinear(x, a, b, c, d) {
 
 function filterQuardratic(x, a, b, c, d) {
 	return b + 0.5 * x*(-3*b + 4*c - d + x*(b - 2*c + d))
+
+	var x0 = 0
+	var x1 = 1
+	var x2 = 2
+	var y0 = b
+	var y1 = c
+	var y2 = d
+	return (x-x1)*(x-x2)/(x0-x1)/(x0-x2)*y0
+		+  (x-x0)*(x-x2)/(x1-x0)/(x1-x2)*y1
+		+  (x-x0)*(x-x1)/(x2-x0)/(x2-x1)*y2
 }
+
 
 function filterCubic(x, a, b, c, d) {
 	return b + 0.5 * x*(c - a + x*(2*a - 5*b + 4*c - d + x*(3*(b - c) + d - a)))
 }
+
+function filterCubicManual(x, a, b, c, d) {
+	return b + 1/6 * x*(-2*a -3*b +6*c -6*d +x*(3*(a +4*b +c) + x*(-a +3*b -3*c +d)))
+}
+
+function filterCubicManualVerbose(x, a, b, c, d) {
+	var x0 = -1
+	var x1 = 0
+	var x2 = 1
+	var x3 = 2
+	var y0 = a
+	var y1 = b
+	var y2 = c
+	var y3 = d
+	// return (x-x1)/(x0-x1)*(x-x2)/(x0-x2)*(x-x3)/(x0-x3)*y0
+	// 	+  (x-x0)/(x1-x0)*(x-x2)/(x1-x2)*(x-x3)/(x1-x3)*y1
+	// 	+  (x-x0)/(x2-x0)*(x-x1)/(x2-x1)*(x-x3)/(x2-x3)*y2
+	// 	+  (x-x0)/(x3-x0)*(x-x1)/(x3-x1)*(x-x2)/(x3-x2)*y3
+
+	return (x-x1)*(x-x2)*(x-x3)/(x0-x1)/(x0-x2)/(x0-x3)*y0
+		+  (x-x0)*(x-x2)*(x-x3)/(x1-x0)/(x1-x2)/(x1-x3)*y1
+		+  (x-x0)*(x-x1)*(x-x3)/(x2-x0)/(x2-x1)/(x2-x3)*y2
+		+  (x-x0)*(x-x1)*(x-x2)/(x3-x0)/(x3-x1)/(x3-x2)*y3
+	// return b + 1/6 * x*(-2*a -3*b +6*c -6*d +x*(3*(a +4*b +c) + x*(-a +3*b -3*c +d)))
+}
+
+function filterCubicForward(x, a, b, c, d, e) {
+	// return b + 0.5 * x*(c - a + x*(2*a - 5*b + 4*c - d + x*(3*(b - c) + d - a)))
+	return b + 1/6 * x*(-11*b + 18*c - 9*d + 2*e + x*(6*b - 15*c + 12*d - 3*e + x*(-b + 3*c - 3*d + e)))
+}
+
 
 
 function easingSmoothstep(t) {
@@ -463,13 +509,17 @@ function onKey() {
 			moveByZ = 0
 		break
 
-	} else switch(kbd.key) {
+	} else if(kbd.changed) switch(kbd.key) {
 		case 'n':
 			moveByZ = 1
 		break
 
 		case 'p':
 			moveByZ = -1
+		break
+
+		case 'a':
+			moveByZ = 1
 		break
 
 		case '-':
@@ -502,6 +552,10 @@ function onKey() {
 		case 'z':
 			drawNormal = !drawNormal
 			needsRedraw = true
+		break
+
+		case 'b':
+			backgroundCapture(backgroundCanvas ? null : can1)
 		break
 	}
 }

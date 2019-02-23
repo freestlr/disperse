@@ -4,7 +4,7 @@ var seed = 543334
 
 var pb = 8
 var pi = 32
-var pz = 1/4
+var pz = 2
 
 
 
@@ -39,6 +39,7 @@ var drawNormal = true
 var normalHeight = -1.4
 var currentZ = 0
 var moveByZ = 0
+var interZ = 0
 
 
 
@@ -104,7 +105,8 @@ function xrun() {
 
 	inter(g2, g1, easing, filter, 1, 0, 0)
 	inter(g3, g2, easing, filter, 0, 1, 0)
-	inter(g4, g3, easing, filter, 0, 0, 1)
+	// inter(g4, g3, easing, filter, 0, 0, 1)
+	interZ = 0
 
 	needsRedraw = true
 }
@@ -561,8 +563,16 @@ function onKey() {
 function loop() {
 	requestAnimationFrame(loop)
 
+	var ring = g4.d
+
+	if(interZ < ring) {
+		inter(g4, g3, easing, filter, 0, 0, 1, 0, 0, interZ, null, null, 1)
+		interZ++
+
+		updateStats()
+	}
+
 	if(moveByZ) {
-		var ring = g4.d
 		currentZ = (((currentZ + moveByZ) % ring) + ring) % ring
 
 		needsRedraw = true

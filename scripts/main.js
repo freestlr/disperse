@@ -3,7 +3,8 @@ var seed = 543334
 
 
 var pb = 8
-var pi = 8
+var pi = 32
+var pz = 1/4
 
 
 
@@ -15,8 +16,6 @@ var filters = [
 	filterQuadratic,
 	filterCubic,
 	filterCubicManual,
-	filterCubicManualVerbose,
-	filterCubicForward,
 ]
 
 var easing = TWEEN.EasingEnum.LinearNone
@@ -81,7 +80,7 @@ var mt = new MersenneTwister
 var g1 = makeSet3(pb, pb, pb)
 var g2 = makeSet3(pb * pi, pb, pb)
 var g3 = makeSet3(pb * pi, pb * pi, pb)
-var g4 = makeSet3(pb * pi, pb * pi, pb * pi * 8)
+var g4 = makeSet3(pb * pi, pb * pi, pb * pi * pz)
 
 var can1 = makeCanvas(pb * pi, pb * pi)
 
@@ -425,11 +424,10 @@ function filterCubic(x, a, b, c, d) {
 	return b + 0.5 * x*(c - a + x*(2*a - 5*b + 4*c - d + x*(3*(b - c) + d - a)))
 }
 
-function filterCubicManual(x, a, b, c, d) {
-	return b + 1/6 * x*(-2*a -3*b +6*c -6*d +x*(3*(a +4*b +c) + x*(-a +3*b -3*c +d)))
-}
+function filterCubicManual(x, a, b, c, d, e) {
+	return b + 1/6 * x*(-2*a -3*b +6*c -d +x*(3*a -6*b +3*c +x*(-a +3*b -3*c +d)))
 
-function filterCubicManualVerbose(x, a, b, c, d) {
+	// this formula differs from canonic cubic interpolation somehow
 	var x0 = -1
 	var x1 = 0
 	var x2 = 1
@@ -438,21 +436,17 @@ function filterCubicManualVerbose(x, a, b, c, d) {
 	var y1 = b
 	var y2 = c
 	var y3 = d
-	// return (x-x1)/(x0-x1)*(x-x2)/(x0-x2)*(x-x3)/(x0-x3)*y0
-	// 	+  (x-x0)/(x1-x0)*(x-x2)/(x1-x2)*(x-x3)/(x1-x3)*y1
-	// 	+  (x-x0)/(x2-x0)*(x-x1)/(x2-x1)*(x-x3)/(x2-x3)*y2
-	// 	+  (x-x0)/(x3-x0)*(x-x1)/(x3-x1)*(x-x2)/(x3-x2)*y3
-
 	return (x-x1)*(x-x2)*(x-x3)/(x0-x1)/(x0-x2)/(x0-x3)*y0
 		+  (x-x0)*(x-x2)*(x-x3)/(x1-x0)/(x1-x2)/(x1-x3)*y1
 		+  (x-x0)*(x-x1)*(x-x3)/(x2-x0)/(x2-x1)/(x2-x3)*y2
 		+  (x-x0)*(x-x1)*(x-x2)/(x3-x0)/(x3-x1)/(x3-x2)*y3
-	// return b + 1/6 * x*(-2*a -3*b +6*c -6*d +x*(3*(a +4*b +c) + x*(-a +3*b -3*c +d)))
+
+	// forward: x0=0, x1=1, x2=2, x3=3, y0=b, y1=c, y2=d, y3=e
+	return b + 1/6 * x*(-11*b + 18*c - 9*d + 2*e + x*(6*b - 15*c + 12*d - 3*e + x*(-b + 3*c - 3*d + e)))
 }
 
-function filterCubicForward(x, a, b, c, d, e) {
-	// return b + 0.5 * x*(c - a + x*(2*a - 5*b + 4*c - d + x*(3*(b - c) + d - a)))
-	return b + 1/6 * x*(-11*b + 18*c - 9*d + 2*e + x*(6*b - 15*c + 12*d - 3*e + x*(-b + 3*c - 3*d + e)))
+function filterCubicHandmade(x, a, b, c, d) {
+	return 1/2 * x*(-a +b +c -d + x*(a -b +c +d))
 }
 
 

@@ -1,0 +1,27 @@
+
+
+
+body {
+	margin: 0;
+	overflow: hidden;
+	font: 18px Arial, sans-serif;
+}
+
+/*
+.dg.ac .close-button {
+	display: none;
+}
+*/
+.dg.ac .disabled {
+	pointer-events: none;
+}
+.dg.ac .disabled input {
+	pointer-events: none;
+}
+.dg.ac .disabled .property-name,
+.dg.ac .disabled.cr.number input[type="text"] {
+	color: #888;
+}
+.dg.ac .disabled .slider-fg {
+	background-color: #444;
+}

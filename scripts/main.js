@@ -514,7 +514,7 @@ function onKey() {
 		break
 
 		case 'a':
-			moveByZ = 1
+			moveByZ = moveByZ ? 0 : 1
 		break
 
 		case '-':

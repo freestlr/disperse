@@ -140,7 +140,11 @@ f.copy(outStats.style, {
 	whiteSpace: 'pre'
 })
 function updateStats() {
-	dom.text(outStats, perf.getall(['last', '%l', 'avg', '%a', 'best', '%b', 'worst', '%w', 'cycles', '%c', 'time', '%t', '| %n']))
+	dom.text(outStats, perf.getall(['last', '%l', 'avg', '%a', 'best', '%b', 'worst', '%w', 'cycles', '%c', 'time', '%t', '| %n'])
+		.concat(['', '',
+			'easing: '+ easing.name,
+			'filter: '+ filter.name,
+		].join('\n')))
 }
 
 var inputHeight = new Block.RangeInput({

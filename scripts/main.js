@@ -272,9 +272,7 @@ function get2(x, y, w, h) {
 }
 
 function get3(x, y, z, w, h, d) {
-	// perf.start('get3')
 	return wrap(x, w) + wrap(y, h) * w + wrap(z, d) * w * h
-		// perf.end('get3')][0]
 }
 
 function draw(can, g, z) {

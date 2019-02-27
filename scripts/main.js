@@ -42,6 +42,9 @@ var moveByZ = 0
 var interZ = 0
 
 
+var needsRedraw = false
+var needsUpdateStats = false
+
 
 /**
  *
@@ -117,7 +120,7 @@ function drawSlice() {
 
 	backgroundUpdate()
 
-	updateStats()
+	needsUpdateStats = true
 }
 
 function rerun(set) {
@@ -545,7 +548,7 @@ function onKey() {
 
 		case 'ENTER':
 			for(var name in perf.values) perf.flushLocal(name)
-			updateStats()
+			needsUpdateStats = true
 		break
 
 		case 'SPACE':
@@ -586,7 +589,7 @@ function loop() {
 		inter(g4, g3, easing, filter, 0, 0, 1, 0, 0, (startZ + interZ) % ring, null, null, 1)
 		interZ++
 
-		updateStats()
+		needsUpdateStats = true
 	}
 
 	if(moveByZ) {
@@ -599,5 +602,11 @@ function loop() {
 		needsRedraw = false
 
 		drawSlice()
+	}
+
+	if(needsUpdateStats) {
+		needsUpdateStats = false
+
+		updateStats()
 	}
 }

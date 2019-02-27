@@ -34,7 +34,6 @@ var backgroundSize = pb * pi
 var backgroundScale = 1
 var backgroundCanvas = null
 var edgeRepeat = true
-var useComponent = 0
 var drawNormal = true
 var normalHeight = -1.4
 var currentZ = 0
@@ -185,7 +184,6 @@ function makeSet3(w, h, d) {
 		h: h,
 		d: d,
 		vx: new Float32Array(w * h * d),
-		// vy: new Float32Array(w * h * d),
 	}
 }
 function makeCanvas(w, h, options) {
@@ -286,55 +284,36 @@ function draw(can, g, z) {
 	var h = g.h
 	var d = g.d
 	var vx = g.vx
-	// var vy = g.vy
 	for(var y = 0; y < h; y++)
 	for(var x = 0; x < w; x++) {
 		var i = z * w * h + y * w + x
 		var o = (y * w + x) * 4
-		// var v = dat[i] *.5 +.5
 		var cx = vx[i]
-		// var cy = vy[i]
 		var cy = -1
 		var cz = -1
 		var ca = 1
 
 		var nh = Math.pow(10, normalHeight)
 
-		if(useComponent < 2) {
-			// var v = [vx, vy][useComponent]
-			var v = vx
 
-			if(drawNormal) {
-				var nx = v[get3(x - 1, y, z, w, h, d)]
-				var px = v[get3(x + 1, y, z, w, h, d)]
-				var ny = v[get3(x, y - 1, z, w, h, d)]
-				var py = v[get3(x, y + 1, z, w, h, d)]
+		if(drawNormal) {
+			var nx = vx[get3(x - 1, y, z, w, h, d)]
+			var px = vx[get3(x + 1, y, z, w, h, d)]
+			var ny = vx[get3(x, y - 1, z, w, h, d)]
+			var py = vx[get3(x, y + 1, z, w, h, d)]
 
-				var dx = (px - nx)// / 2
-				var dy = (py - ny)// / 2
-				var norm = vnor(vvcross(vnor([1, 0, dx]), vnor([0, 1, dy])))
+			var dx = (px - nx)// / 2
+			var dy = (py - ny)// / 2
+			var norm = vnor(vvcross(vnor([1, 0, dx]), vnor([0, 1, dy])))
 
-				norm[2] *= nh
-				norm = vnor(norm)
+			norm[2] *= nh
+			norm = vnor(norm)
 
-				cx = norm[0]
-				cy = norm[1]
-				cz = norm[2]
-			} else {
-				cx = cy = cz = v[i]
-			}
-
+			cx = norm[0]
+			cy = norm[1]
+			cz = norm[2]
 		} else {
-			if(drawNormal) {
-				var pl = Math.min(1, cx * cx + cy * cy)
-				cz = Math.sqrt(1 - pl) * nh
-				var dl = 1 / Math.sqrt(cx * cx + cy * cy + cz * cz)
-				cx *= dl
-				cy *= dl
-				cz *= dl
-			} else {
-
-			}
+			cx = cy = cz = vx[i]
 		}
 
 		m[o +0] = (cx *.5 +.5) * 255 |0
@@ -558,11 +537,6 @@ function onKey() {
 		case 'e':
 			edgeRepeat = !edgeRepeat
 			run()
-		break
-
-		case 'x':
-			useComponent = (useComponent + 1) % 3
-			needsRedraw = true
 		break
 
 		case 'z':

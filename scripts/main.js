@@ -106,6 +106,7 @@ function xrun() {
 	inter(g2, g1, easing, filter, 1, 0, 0)
 	inter(g3, g2, easing, filter, 0, 1, 0)
 	// inter(g4, g3, easing, filter, 0, 0, 1)
+	startZ = currentZ
 	interZ = 0
 
 	needsRedraw = true
@@ -566,7 +567,7 @@ function loop() {
 	var ring = g4.d
 
 	if(interZ < ring) {
-		inter(g4, g3, easing, filter, 0, 0, 1, 0, 0, interZ, null, null, 1)
+		inter(g4, g3, easing, filter, 0, 0, 1, 0, 0, (startZ + interZ) % ring, null, null, 1)
 		interZ++
 
 		updateStats()

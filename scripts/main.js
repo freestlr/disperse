@@ -83,7 +83,7 @@ var g2 = makeSet3(pb * pi, pb, pb)
 var g3 = makeSet3(pb * pi, pb * pi, pb)
 var g4 = makeSet3(pb * pi, pb * pi, pb * pi * pz)
 
-var can1 = makeCanvas(pb * pi, pb * pi)
+var can1 = makeCanvas(pb * pi, pb * pi, { center: true })
 
 
 // var get3 = perf.wrap(get3)
@@ -200,12 +200,19 @@ function makeCanvas(w, h, options) {
 		imageRendering: opt.imageRendering || 'pixelated',
 	})
 
+	if(opt.center) f.copy(cvs.style, {
+		position: 'absolute',
+		left: '50%',
+		top: '50%',
+	})
+
 	var set = {
 		w: w,
 		h: h,
 		cvs: cvs,
 		ctx: ctx,
 		pix: pix,
+		center: opt.center,
 	}
 
 	return set
@@ -242,6 +249,11 @@ function backgroundResize(scale) {
 	f.copy(can.cvs.style, {
 		width:  can.w * bk +'px',
 		height: can.h * bk +'px',
+	})
+
+	if(can.center) f.copy(can.cvs.style, {
+		marginTop:  -(can.w * bk) /2 +'px',
+		marginLeft: -(can.h * bk) /2 +'px',
 	})
 
 	f.copy(document.body.style, {

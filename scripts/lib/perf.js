@@ -2,12 +2,6 @@ var perf = {
 	precision: Infinity,
 	values: {},
 
-	time: function() {
-		return window.performance && window.performance.now ? window.performance.now()
-			:  Date.now ? Date.now()
-			:  new Date().getTime()
-	},
-
 	round: function(v) {
 		return perf.precision === -Infinity ? f.cround(v)
 			: perf.precision === Infinity ? v
@@ -31,14 +25,14 @@ var perf = {
 			}
 		}
 
-		v.startTime = perf.time()
+		v.startTime = performance.now()
 	},
 
 	end: function(name, flushCycles) {
 		var v = perf.values[name]
 		if(!v) return
 
-		v.lastSpent = perf.time() - v.startTime
+		v.lastSpent = performance.now() - v.startTime
 		v.startTime = 0
 
 		v.totalCycles++

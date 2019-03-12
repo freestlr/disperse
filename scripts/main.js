@@ -550,16 +550,11 @@ function onKey() {
 
 
 function loop() {
+	var frameStart = performance.now()
+
 	requestAnimationFrame(loop)
 
 	var ring = g4.d
-
-	if(interZ < ring) {
-		inter(g4, g3, easing, filter, 0, 0, 1, 0, 0, (startZ + interZ) % ring, null, null, 1)
-		interZ++
-
-		needsUpdateStats = true
-	}
 
 	if(moveByZ) {
 		currentZ = (((currentZ + moveByZ) % ring) + ring) % ring
@@ -571,6 +566,17 @@ function loop() {
 		needsRedraw = false
 
 		drawSlice()
+	}
+
+	var frameNow = performance.now()
+	while(interZ < ring && frameNow - frameStart < 12) {
+
+		inter(g4, g3, easing, filter, 0, 0, 1, 0, 0, (startZ + interZ) % ring, null, null, 1)
+
+		needsUpdateStats = true
+		if(interZ === currentZ) needsRedraw = true
+		interZ ++
+		frameNow = performance.now()
 	}
 
 	if(needsUpdateStats) {

@@ -92,13 +92,10 @@ var can1 = makeCanvas(pb * pi, pb * pi, { center: true })
 var generate = perf.wrap(generate)
 // var inter = perf.wrap(inter)
 var draw = perf.wrap(draw)
+var run = perf.wrap(run)
 
 
 function run() {
-	perf.call(xrun)
-}
-
-function xrun() {
 	mt.init(seed)
 
 	generate(g1)

@@ -18,15 +18,15 @@ var perf = {
 		var v = perf.values[name]
 		if(!v) {
 			v = perf.values[name] = {
-				totalTime   :  0,
+				totalSpent  :  0,
 				totalCycles :  0,
 				totalBest   :  Infinity,
 				totalWorst  : -Infinity,
-				localTime   :  0,
+				localSpent  :  0,
 				localCycles :  0,
 				localBest   :  Infinity,
 				localWorst  : -Infinity,
-				lastTime    :  0,
+				lastSpent   :  0,
 				startTime   :  0
 			}
 		}
@@ -38,20 +38,20 @@ var perf = {
 		var v = perf.values[name]
 		if(!v) return
 
-		v.lastTime = perf.time() - v.startTime
+		v.lastSpent = perf.time() - v.startTime
 		v.startTime = 0
 
 		v.totalCycles++
 		v.localCycles++
 
-		v.totalBest  = Math.min(v.totalBest, v.lastTime)
-		v.totalWorst = Math.max(v.totalWorst, v.lastTime)
+		v.totalBest  = Math.min(v.totalBest, v.lastSpent)
+		v.totalWorst = Math.max(v.totalWorst, v.lastSpent)
 
-		v.localBest  = Math.min(v.localBest, v.lastTime)
-		v.localWorst = Math.max(v.localWorst, v.lastTime)
+		v.localBest  = Math.min(v.localBest, v.lastSpent)
+		v.localWorst = Math.max(v.localWorst, v.lastSpent)
 
-		v.totalTime += v.lastTime
-		v.localTime += v.lastTime
+		v.totalSpent += v.lastSpent
+		v.localSpent += v.lastSpent
 
 		if(v.localCycles >= flushCycles) perf.show(name)
 	},
@@ -60,7 +60,7 @@ var perf = {
 		var v = perf.values[name]
 		if(!v) return
 
-		v.localTime   =  0
+		v.localSpent  =  0
 		v.localCycles =  0
 		v.localBest   =  Infinity
 		v.localWorst  = -Infinity
@@ -70,7 +70,7 @@ var perf = {
 		var v = perf.values[name]
 		if(!v) return console.log('perf: no', name)
 
-		console.log(perf.format('perf %n: %a avg, %b best, %w worst, %t ms, %c cycles, %C total cycles, %A total avg', name))
+		console.log(perf.format('perf %n: %a avg, %b best, %w worst, %s ms, %c cycles, %C total cycles, %A total avg', name))
 
 		if(!noFlush) perf.flushLocal(name)
 	},
@@ -91,19 +91,19 @@ var perf = {
 		var map = {
 			'%n': name,
 
-			'%T': v.totalTime,
+			'%S': v.totalSpent,
 			'%C': v.totalCycles,
 			'%B': perf.round(v.totalBest),
 			'%W': perf.round(v.totalWorst),
-			'%A': perf.round(v.totalTime / v.totalCycles),
+			'%A': perf.round(v.totalSpent / v.totalCycles),
 
-			'%t': v.localTime,
+			'%s': v.localSpent,
 			'%c': v.localCycles,
 			'%b': perf.round(v.localBest),
 			'%w': perf.round(v.localWorst),
-			'%a': perf.round(v.localTime / v.localCycles),
+			'%a': perf.round(v.localSpent / v.localCycles),
 
-			'%l': perf.round(v.lastTime)
+			'%l': perf.round(v.lastSpent)
 		}
 		function extract(m) { return m in map ? map[m] : m }
 		function replace(m) { return m in map ? map[m] : m.replace(/%./g, extract) }

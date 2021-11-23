@@ -91,7 +91,7 @@ var can1 = makeCanvas(pb * pi, pb * pi, { center: true })
 // var get3 = perf.wrap(get3)
 var generate = perf.wrap(generate)
 // var inter = perf.wrap(inter)
-var draw = perf.wrap(draw)
+// var draw = perf.wrap(draw)
 var run = perf.wrap(run)
 
 
@@ -139,7 +139,7 @@ f.copy(outStats.style, {
 	whiteSpace: 'pre'
 })
 function updateStats() {
-	dom.text(outStats, perf.getall(['last', '%l', 'avg', '%a', 'best', '%b', 'worst', '%w', 'cycles', '%c', 'time', '%s', '| %n'])
+	dom.text(outStats, perf.getall(['%l', '%a', '%b', '%w', '%c', '%s', '| %n'], true)
 		.concat(['', '',
 			'easing: '+ easing.name,
 			'filter: '+ filter.name,
@@ -273,6 +273,7 @@ function get3(x, y, z, w, h, d) {
 }
 
 function draw(can, g, z) {
+	perf.start(drawNormal ? 'draw-normal' : 'draw')
 	var m = can.pix.data
 
 	var w = g.w
@@ -318,6 +319,7 @@ function draw(can, g, z) {
 	}
 
 	can.ctx.putImageData(can.pix, 0, 0)
+	perf.end(drawNormal ? 'draw-normal' : 'draw')
 }
 
 function generate(g) {

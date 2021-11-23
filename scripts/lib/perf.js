@@ -69,20 +69,38 @@ var perf = {
 		if(!noFlush) perf.flushLocal(name)
 	},
 
-	getlist: function(list, format) {
-		// return f.tformat(list).map(function(name) { return perf.format(format , name) })
-		return f.tformat(list.map(name => perf.format(format, name)))
+	getlist: function(list, fmt, head) {
+		return f.tformat(
+			(head ? [perf.format(fmt, '', true)] : []).concat(
+			list.map(name => perf.format(fmt, name))))
 	},
 
-	getall: function(format) {
-		return perf.getlist(Object.keys(perf.values), format)
+	getall: function(fmt, head) {
+		return perf.getlist(Object.keys(perf.values), fmt, head)
 	},
 
-	format: function(fmt, name) {
+	format: function(fmt, name, head) {
 		var v = perf.values[name]
-		if(!v) return console.log('perf: no', name)
+		if(!v && !head) return console.log('perf: no', name)
 
-		var map = {
+		var map = head ? {
+			'%n': 'name',
+
+			'%S': 'TIME',
+			'%C': 'CYCLES',
+			'%B': 'BEST',
+			'%W': 'WORST',
+			'%A': 'AVG',
+
+			'%s': 'time',
+			'%c': 'cycles',
+			'%b': 'best',
+			'%w': 'worst',
+			'%a': 'avg',
+
+			'%l': 'last'
+
+		} : {
 			'%n': name,
 
 			'%S': v.totalSpent,
@@ -99,6 +117,7 @@ var perf = {
 
 			'%l': perf.round(v.lastSpent)
 		}
+
 		function extract(m) { return m in map ? map[m] : m }
 		function replace(m) { return m in map ? map[m] : m.replace(/%./g, extract) }
 

@@ -728,9 +728,11 @@ f.tformat = function(table, options) {
 		var dl = []
 		,   dr = []
 		,   ds = []
+		,   da = []
 
 		var ml = 0
 		,   mr = 0
+		,   ma = 0
 
 		for(var i = 0; i < rowc; i++) {
 			var val = table[i][j]
@@ -743,8 +745,8 @@ f.tformat = function(table, options) {
 
 			var len = str.length
 
-			var cl = 0
-			,   cr = len
+			var cl = -1
+			,   cr = 0
 
 			if(num) {
 				var pti = str.indexOf('.')
@@ -754,19 +756,29 @@ f.tformat = function(table, options) {
 
 			ml = Math.max(ml, cl)
 			mr = Math.max(mr, cr)
+			ma = Math.max(ma, len)
 
 			dl.push(cl)
 			dr.push(cr)
 			ds.push(str)
+			da.push(len)
 		}
 
+		if (ml + mr < ma) ml = ma - mr
+
 		for(var i = 0; i < rowc; i++) {
-			var str = ds[i]
+			var cs = ds[i]
+			,   cl = dl[i]
+			,   cr = dr[i]
+			,   ca = da[i]
 
-			var il = Array(1 + Math.max(0, ml - dl[i])).join(' ')
-			,   ir = Array(1 + Math.max(0, mr - dr[i])).join(' ')
+			var ol = cl === -1 ? 0 : ml - cl
+			,   or = cl === -1 ? ml + mr - ca : mr - cr
 
-			rows[i][j] = il + str + ir
+			var il = Array(1 + Math.max(0, ol)).join(' ')
+			,   ir = Array(1 + Math.max(0, or)).join(' ')
+
+			rows[i][j] = il + cs + ir
 		}
 	}
 

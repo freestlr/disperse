@@ -39,6 +39,7 @@ var normalHeight = -1.4
 var currentZ = 0
 var moveByZ = 0
 var interZ = 0
+var startZ = 0
 
 
 var needsRedraw = false
@@ -105,7 +106,7 @@ function run() {
 	inter(g2, g1, easing, filter, 1, 0, 0)
 	inter(g3, g2, easing, filter, 0, 1, 0)
 	// inter(g4, g3, easing, filter, 0, 0, 1)
-	startZ = currentZ
+	startZ = (currentZ || g4.d) - 1
 	interZ = 0
 
 	needsRedraw = true
@@ -572,11 +573,12 @@ function loop() {
 
 	var frameNow = performance.now()
 	while(interZ < ring && frameNow - frameStart < 12) {
+		var pos = (startZ + interZ) % ring
 
-		inter(g4, g3, easing, filter, 0, 0, 1, 0, 0, (startZ + interZ) % ring, null, null, 1)
+		inter(g4, g3, easing, filter, 0, 0, 1, 0, 0, pos, null, null, 1)
 
 		needsUpdateStats = true
-		if(interZ === currentZ) needsRedraw = true
+		if(pos === currentZ) needsRedraw = true
 		interZ ++
 		frameNow = performance.now()
 	}

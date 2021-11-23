@@ -9,16 +9,15 @@ var pz = 2
 
 
 
-var filter = filterCubic
 var filters = [
 	filterNearest,
 	filterLinear,
 	filterQuadratic,
 	filterCubic,
-	filterCubicManual,
+	filterCubicPerlin,
 ]
+var filter = filters[4]
 
-var easing = TWEEN.EasingEnum.LinearNone
 var easings = [
 	TWEEN.EasingEnum.LinearNone,
 	TWEEN.EasingEnum.QuadraticInOut,
@@ -29,6 +28,7 @@ var easings = [
 	easingTangent2,
 	easingTangent4,
 ]
+var easing = easings[0]
 
 var backgroundSize = pb * pi
 var backgroundScale = 1
@@ -486,9 +486,9 @@ function onKey() {
 	if(/\d/.test(kbd.key)) {
 
 		if(kbd.state.SHIFT) {
-			easing = easings[kbd.key -1] || TWEEN.EasingEnum.LinearNone
+			easing = easings[kbd.key -1] || easings[0]
 		} else {
-			filter = filters[kbd.key -1] || filterNearest
+			filter = filters[kbd.key -1] || filters[0]
 		}
 		run()
 

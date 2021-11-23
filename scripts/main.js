@@ -235,7 +235,7 @@ function backgroundUpdate(set) {
 	f.copy(document.body.style, {
 		'background-image': bg ? 'url('+ bg.cvs.toDataURL() +')' : '',
 		'background-position': 'center center',
-		'background-color': 'white',
+		'background-color': '#333',
 	})
 }
 

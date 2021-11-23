@@ -493,20 +493,20 @@ function onKey() {
 		run()
 
 	} else if(!kbd.down) switch(kbd.key) {
-		case 'n':
+		case 'j':
 			moveByZ = 0
 		break
 
-		case 'p':
+		case 'k':
 			moveByZ = 0
 		break
 
 	} else if(kbd.changed) switch(kbd.key) {
-		case 'n':
+		case 'j':
 			moveByZ = 1
 		break
 
-		case 'p':
+		case 'k':
 			moveByZ = -1
 		break
 

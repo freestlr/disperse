@@ -13,8 +13,8 @@ standard project desription
    * **-** - decrease canvas twice
    * **+** - increase canvas twice
  * cycle through z-axis:
-   * **n** - cycle forward
-   * **p** - cycle backward
+   * **j** - cycle forward
+   * **k** - cycle backward
    * **a** - autocycle forward
  * filter functions control:
    * **1** - nearest
